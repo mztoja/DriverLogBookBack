@@ -36,3 +36,4 @@ lerna-debug.log*
 
 # Secure data
 src/config/config.ts
+/ormconfig.json

@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { config } from './config/config';
 import { DataSource } from 'typeorm';
-import { UsersModule } from './db/users/users.module';
-import { entities } from './db/entities';
+import { UsersModule } from './users/users.module';
+import { AuthenticationModule } from './authentication/authentication.module';
+import { config } from './config/config';
 
 @Module({
   imports: [
@@ -16,10 +16,13 @@ import { entities } from './db/entities';
       username: config.dbUser,
       password: config.dbPassword,
       database: config.dbDatabase,
-      entities: entities,
-      synchronize: false, //@TODO: after production switch to true
+      entities: ['dist/**/**.entity{.ts,.js}'],
+      bigNumberStrings: false,
+      logging: true,
+      synchronize: false,
     }),
     UsersModule,
+    AuthenticationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
