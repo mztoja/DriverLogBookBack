@@ -1,8 +1,8 @@
 import { BadRequestException, Body, Controller, Get, Post, Req, Res, UnauthorizedException } from "@nestjs/common";
-import * as bcrypt from "bcrypt";
-import { AuthenticationService } from "./authentication.service";
-import { JwtService } from "@nestjs/jwt";
-import { Request, Response } from "express";
+import * as bcrypt from 'bcrypt';
+import { AuthenticationService } from './authentication.service';
+import { JwtService } from '@nestjs/jwt';
+import { Request, Response } from 'express';
 
 @Controller('authentication')
 export class AuthenticationController {
@@ -18,12 +18,17 @@ export class AuthenticationController {
     @Body('password') password: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Body('name') name: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    @Body('lang') lang: string,
+
+
   ) {
     const hashedPassword = await bcrypt.hash(password, 8);
     const user = await this.authenticationService.create({
       name,
       email,
       password: hashedPassword,
+      lang,
     });
     delete user.password;
     return user;

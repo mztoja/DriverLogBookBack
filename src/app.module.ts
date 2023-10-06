@@ -19,7 +19,7 @@ import { config } from './config/config';
       entities: ['dist/**/**.entity{.ts,.js}'],
       bigNumberStrings: false,
       logging: true,
-      synchronize: false,
+      synchronize: true,
     }),
     UsersModule,
     AuthenticationModule,

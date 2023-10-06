@@ -14,11 +14,11 @@ export class UsersService {
     return this.usersRepository.find();
   }
 
-  findOne(id: number): Promise<UserEntity | null> {
+  findOne(id: string): Promise<UserEntity | null> {
     return this.usersRepository.findOneBy({ id });
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await this.usersRepository.delete(id);
   }
 }

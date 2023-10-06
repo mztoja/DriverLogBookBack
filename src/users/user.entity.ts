@@ -1,21 +1,21 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
-import { UserInterface } from '../types/userInterface';
+import { UserInterface, UserLangEnum } from '../types';
 
 @Entity({
-  name: 'v2_users',
+  name: 'users',
 })
 export class UserEntity implements UserInterface {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   status: number;
 
-  @Column({ default: 'en' })
-  lang: 'pl' | 'en';
+  @Column({ default: 0 })
+  lang: UserLangEnum;
 
-  @Column({ name: 'register_date', default: () => 'CURRENT_TIMESTAMP' })
-  registerDate: string;
+  @Column({ default: () => 'CURRENT_TIMESTAMP', type: 'datetime' })
+  registerAt: string;
 
   @Column({ unique: true })
   email: string;
@@ -24,18 +24,15 @@ export class UserEntity implements UserInterface {
   password: string;
 
   @Column()
-  code: string;
-
-  @Column()
   name: string;
 
   @Column()
-  company: number;
+  companyId: number;
 
   @Column()
   customer: string;
 
-  @Column({ name: 'bid_type' })
+  @Column()
   bidType: number;
 
   @Column()
@@ -50,10 +47,10 @@ export class UserEntity implements UserInterface {
   @Column()
   marked2: number;
 
-  @Column({ name: 'fuel_con_type' })
+  @Column()
   fuelConType: number;
 
-  @Column({ name: 'fuel_con_disp' })
+  @Column()
   fuelConDisp: number;
 
   @Column()
