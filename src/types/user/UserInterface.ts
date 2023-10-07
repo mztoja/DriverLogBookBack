@@ -1,8 +1,8 @@
-import { UserStatusEnum } from './userEnums';
-import { UserLangEnum } from './userEnums';
-import { UserBidTypeEnum } from './userEnums';
-import { UserFuelContypeEnum } from './userEnums';
-import { UserFuelConDispEnum } from './userEnums';
+import { UserStatusEnum } from './UserEnums';
+import { UserLangEnum } from './UserEnums';
+import { UserBidTypeEnum } from './UserEnums';
+import { UserFuelContypeEnum } from './UserEnums';
+import { UserFuelConDispEnum } from './UserEnums';
 
 export interface UserInterface {
   id: string;

@@ -1,3 +1,3 @@
-export * from './userEnums';
-export * from './userInterface';
-export * from './loginFormInterface';
+export * from './UserEnums';
+export * from './UserInterface';
+export * from './LoginFormInterface';
