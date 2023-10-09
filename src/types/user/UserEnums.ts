@@ -6,6 +6,7 @@ export enum UserStatusEnum {
 }
 
 export enum UserBidTypeEnum {
+  notSpecified = 0,
   perDay = 1,
   perKm = 2,
   fixedSalary = 3,

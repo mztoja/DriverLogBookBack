@@ -1,8 +1,20 @@
-import { BadRequestException, Body, Controller, Get, Post, Req, Res, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthenticationService } from './authentication.service';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
+import { emailRegExp, passwordRegExp } from '../config/regexp';
+import { PlacesService } from '../places/places.service';
 
 @Controller('authentication')
 export class AuthenticationController {
@@ -10,34 +22,84 @@ export class AuthenticationController {
     private readonly authenticationService: AuthenticationService,
     private jwtService: JwtService,
   ) {}
+  @Inject(PlacesService)
+  placesService: PlacesService;
+
   @Post('register')
   async register(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Body('email') email: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Body('password') password: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    @Body('name') name: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    @Body('firstName') firstName: string,
+    @Body('lastName') lastName: string,
     @Body('lang') lang: string,
-
-
+    @Body('companyName') companyName: string,
+    @Body('companyStreet') companyStreet: string,
+    @Body('companyPostCode') companyPostCode: string,
+    @Body('companyCity') companyCity: string,
+    @Body('country') country: string,
+    @Body('defaultCustomer') customer: string,
+    @Body('bidType') bidType: string,
+    @Body('amount') bid: string,
+    @Body('currency') currency: string,
+    @Body('fuelConsumptionType') fuelConType: string,
   ) {
+    if (!emailRegExp().test(email)) {
+      throw new BadRequestException('invalid email');
+    }
+    if (!passwordRegExp().test(password)) {
+      throw new BadRequestException('invalid password');
+    }
+    if (companyName.length < 1) {
+      throw new BadRequestException('company name not specified');
+    }
+    if (companyCity.length < 1) {
+      throw new BadRequestException('city not specified');
+    }
+    if (country === undefined) {
+      throw new BadRequestException('country not specified');
+    }
+    const checkUser = await this.authenticationService.findOne({
+      where: { email: email },
+    });
+    if (checkUser) {
+      throw new BadRequestException('email exist');
+    }
+    const place = await this.placesService.create({
+      userId: '',
+      isFavorite: false,
+      type: 1,
+      name: companyName,
+      street: companyStreet,
+      code: companyPostCode,
+      city: companyCity,
+      country,
+    });
+    if (!place) {
+      throw new BadRequestException('place not created');
+    }
     const hashedPassword = await bcrypt.hash(password, 8);
     const user = await this.authenticationService.create({
-      name,
       email,
       password: hashedPassword,
-      lang,
+      firstName,
+      lastName,
+      lang: Number(lang),
+      country,
+      customer,
+      bidType: Number(bidType),
+      bid: Number(bid),
+      currency,
+      fuelConType: Number(fuelConType),
+      companyId: place.id,
     });
+    await this.placesService.setUserId(place.id, user.id);
     delete user.password;
     return user;
   }
+
   @Post('login')
   async login(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Body('email') email: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Body('password') password: string,
     @Res({ passthrough: true }) response: Response,
   ) {

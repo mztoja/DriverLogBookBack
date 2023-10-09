@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from '../users/user.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { config } from '../config/config';
+import { PlacesModule } from '../places/places.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { config } from '../config/config';
       secret: config.secretJwt,
       signOptions: { expiresIn: '1d' },
     }),
+    PlacesModule,
   ],
   providers: [AuthenticationService],
   controllers: [AuthenticationController],

@@ -8,54 +8,57 @@ export class UserEntity implements UserInterface {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ type: 'tinyint' })
   status: number;
 
-  @Column({ default: 0 })
+  @Column({ type: 'tinyint', default: 0 })
   lang: UserLangEnum;
 
-  @Column({ default: () => 'CURRENT_TIMESTAMP', type: 'datetime' })
+  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   registerAt: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, type: 'varchar', length: 254 })
   email: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 60 })
   password: string;
 
-  @Column()
-  name: string;
+  @Column({ type: 'varchar', length: 22, nullable: true, default: null })
+  firstName: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 22, nullable: true, default: null })
+  lastName: string;
+
+  @Column({ type: 'int', precision: 11 })
   companyId: number;
 
-  @Column()
+  @Column({ type: 'varchar', length: 20, nullable: true, default: null })
   customer: string;
 
-  @Column()
+  @Column({ type: 'tinyint', default: 0 })
   bidType: number;
 
-  @Column()
+  @Column({ type: 'decimal', precision: 6, scale: 2, default: 0 })
   bid: number;
 
-  @Column()
-  cur: string;
+  @Column({ type: 'tinytext', nullable: true, default: null })
+  currency: string;
 
-  @Column()
-  marked: number;
+  @Column({ type: 'int', precision: 11, default: 0 })
+  markedArrive: number;
 
-  @Column()
-  marked2: number;
+  @Column({ type: 'int', precision: 11, default: 0 })
+  markedDepart: number;
 
-  @Column()
+  @Column({ type: 'tinyint', default: 1 })
   fuelConType: number;
 
-  @Column()
+  @Column({ type: 'tinyint', default: 1 })
   fuelConDisp: number;
 
-  @Column()
+  @Column({ type: 'tinytext', nullable: true, default: null })
   country: string;
 
-  @Column()
+  @Column({ type: 'tinyint', nullable: true, default: null })
   gen: string;
 }

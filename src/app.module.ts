@@ -6,6 +6,7 @@ import { DataSource } from 'typeorm';
 import { UsersModule } from './users/users.module';
 import { AuthenticationModule } from './authentication/authentication.module';
 import { config } from './config/config';
+import { PlacesModule } from './places/places.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { config } from './config/config';
     }),
     UsersModule,
     AuthenticationModule,
+    PlacesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
