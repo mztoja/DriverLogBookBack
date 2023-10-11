@@ -1,8 +1,7 @@
 export enum UserStatusEnum {
-  new = 0,
-  blocked = 1,
-  active = 2,
-  admin = 3,
+  blocked = 0,
+  active = 1,
+  admin = 2,
 }
 
 export enum UserBidTypeEnum {

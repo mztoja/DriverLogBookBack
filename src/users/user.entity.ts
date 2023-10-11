@@ -8,7 +8,7 @@ export class UserEntity implements UserInterface {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'tinyint' })
+  @Column({ type: 'tinyint', default: 0 })
   status: number;
 
   @Column({ type: 'tinyint', default: 0 })

@@ -10,15 +10,14 @@ export class UsersService {
     private usersRepository: Repository<UserEntity>,
   ) {}
 
-  findAll(): Promise<UserEntity[]> {
-    return this.usersRepository.find();
-  }
-
-  findOne(id: string): Promise<UserEntity | null> {
-    return this.usersRepository.findOneBy({ id });
-  }
-
-  async remove(id: string): Promise<void> {
-    await this.usersRepository.delete(id);
+  async markDepart(userId: string, placeId: number): Promise<void> {
+    await this.usersRepository.update(
+      {
+        id: userId,
+      },
+      {
+        markedDepart: placeId,
+      },
+    );
   }
 }

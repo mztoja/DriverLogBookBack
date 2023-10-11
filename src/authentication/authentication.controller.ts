@@ -73,6 +73,9 @@ export class AuthenticationController {
       code: companyPostCode,
       city: companyCity,
       country,
+      lat: '',
+      lon: '',
+      description: null,
     });
     if (!place) {
       throw new BadRequestException('place not created');

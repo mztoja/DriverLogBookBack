@@ -9,8 +9,10 @@ export const emailRegExp = () => {
 
 //Password:
 export const passwordRegExp = () => {
-  return new RegExp(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/);
-  //Minimum eight characters, at least one uppercase letter, one lowercase letter and one number
+  return new RegExp(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+  );
+  //Minimum eight characters, at least one uppercase letter, one lowercase letter, one number and one character
 };
 
 //Amount:

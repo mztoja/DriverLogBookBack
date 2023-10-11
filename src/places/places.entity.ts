@@ -32,10 +32,10 @@ export class PlacesEntity implements PlaceInterface {
   @Column({ type: 'tinytext' })
   country: string;
 
-  @Column({ type: 'decimal', precision: 6, scale: 2, default: 0 })
+  @Column({ type: 'decimal', precision: 10, scale: 7, default: 0 })
   lat: string;
 
-  @Column({ type: 'decimal', precision: 6, scale: 2, default: 0 })
+  @Column({ type: 'decimal', precision: 10, scale: 7, default: 0 })
   lon: string;
 
   @Column({ type: 'varchar', length: 50, nullable: true, default: null })
