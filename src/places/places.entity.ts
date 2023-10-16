@@ -29,7 +29,7 @@ export class PlacesEntity implements PlaceInterface {
   @Column({ type: 'varchar', length: 30 })
   city: string;
 
-  @Column({ type: 'tinytext' })
+  @Column({ type: 'varchar', length: 3 })
   country: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 7, default: 0 })

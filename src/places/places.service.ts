@@ -16,4 +16,10 @@ export class PlacesService {
   async setUserId(id: number, userId: string) {
     return this.placesRepository.update(id, { userId });
   }
+  async findAll(userId: string) {
+    return this.placesRepository.find({
+      where: { userId },
+      order: { country: 'ASC', code: 'ASC', name: 'ASC' },
+    });
+  }
 }

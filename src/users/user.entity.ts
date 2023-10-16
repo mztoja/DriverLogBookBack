@@ -41,7 +41,7 @@ export class UserEntity implements UserInterface {
   @Column({ type: 'decimal', precision: 6, scale: 2, default: 0 })
   bid: number;
 
-  @Column({ type: 'tinytext', nullable: true, default: null })
+  @Column({ type: 'varchar', length: 3, nullable: true, default: null })
   currency: string;
 
   @Column({ type: 'int', precision: 11, default: 0 })
@@ -56,7 +56,7 @@ export class UserEntity implements UserInterface {
   @Column({ type: 'tinyint', default: 1 })
   fuelConDisp: number;
 
-  @Column({ type: 'tinytext', nullable: true, default: null })
+  @Column({ type: 'varchar', length: 3, nullable: true, default: null })
   country: string;
 
   @Column({ type: 'tinyint', nullable: true, default: null })

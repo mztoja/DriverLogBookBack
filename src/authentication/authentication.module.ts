@@ -18,5 +18,6 @@ import { PlacesModule } from '../places/places.module';
   ],
   providers: [AuthenticationService],
   controllers: [AuthenticationController],
+  exports: [AuthenticationService],
 })
 export class AuthenticationModule {}

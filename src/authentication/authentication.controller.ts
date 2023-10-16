@@ -7,7 +7,6 @@ import {
   Post,
   Req,
   Res,
-  UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthenticationService } from './authentication.service';
@@ -125,21 +124,9 @@ export class AuthenticationController {
 
   @Get('user')
   async user(@Req() request: Request) {
-    try {
-      const cookie = request.cookies['jwt'];
-      const data = await this.jwtService.verifyAsync(cookie);
-      if (!data) {
-        throw new UnauthorizedException();
-      }
-      const user = await this.authenticationService.findOne({
-        where: { id: data['id'] },
-      });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...safeUser } = user;
-      return safeUser;
-    } catch (e) {
-      throw new UnauthorizedException();
-    }
+    return await this.authenticationService.findByCookie(
+      request.cookies['jwt'],
+    );
   }
 
   @Post('logout')
