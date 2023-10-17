@@ -10,7 +10,7 @@ export interface PlaceInterface {
   street: string;
   code: string;
   city: string;
-  lat: string;
-  lon: string;
+  lat: number;
+  lon: number;
   description: string;
 }

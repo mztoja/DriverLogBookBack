@@ -7,7 +7,7 @@ export interface PlaceCreateDto {
   code: string;
   city: string;
   country: string;
-  lat: string;
-  lon: string;
+  lat: number;
+  lon: number;
   description: string;
 }

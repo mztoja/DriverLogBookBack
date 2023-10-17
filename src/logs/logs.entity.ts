@@ -17,7 +17,7 @@ export class LogsEntity implements LogInterface {
   action: string;
   @Column({ type: 'varchar', length: 3 })
   country: string;
-  @Column({ type: 'varchar', length: 30 })
+  @Column({ type: 'varchar', nullable: true, length: 30 })
   place: string;
   @Column({ type: 'int' })
   placeId: number;
