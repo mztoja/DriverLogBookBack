@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { AuthenticationModule } from './authentication/authentication.module';
 import { config } from './config/config';
 import { PlacesModule } from './places/places.module';
+import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { PlacesModule } from './places/places.module';
     UsersModule,
     AuthenticationModule,
     PlacesModule,
+    LogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
