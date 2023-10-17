@@ -72,8 +72,8 @@ export class AuthenticationController {
       code: companyPostCode,
       city: companyCity,
       country,
-      lat: '',
-      lon: '',
+      lat: 0,
+      lon: 0,
       description: null,
     });
     if (!place) {

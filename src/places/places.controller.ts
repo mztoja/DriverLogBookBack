@@ -67,8 +67,8 @@ export class PlacesController {
       code,
       city,
       country,
-      lat,
-      lon,
+      lat: Number(lat),
+      lon: Number(lon),
       description: description !== '' ? description : null,
     });
     if (place) {
