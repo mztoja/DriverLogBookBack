@@ -38,6 +38,6 @@ export class PlacesEntity implements PlaceInterface {
   @Column({ type: 'decimal', precision: 10, scale: 7, default: 0 })
   lon: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true, default: null })
+  @Column({ type: 'text', nullable: true, default: null })
   description: string;
 }
