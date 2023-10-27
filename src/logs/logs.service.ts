@@ -16,4 +16,7 @@ export class LogsService {
   async setAction(id: number, action: string) {
     return this.logsRepository.update(id, { action });
   }
+  async setTourId(id: number, tourId: number) {
+    return this.logsRepository.update(id, { tourId });
+  }
 }

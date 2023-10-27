@@ -1,10 +1,10 @@
-import { PlaceTypeEnum } from './PlaceEnums';
+import { placeTypeEnum } from './PlaceEnums';
 
 export interface PlaceInterface {
   id: number;
   userId: string;
   isFavorite: boolean;
-  type: PlaceTypeEnum;
+  type: placeTypeEnum;
   country: string;
   name: string;
   street: string;

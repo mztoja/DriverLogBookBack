@@ -1,20 +1,17 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { UserEntity } from './user.entity';
-import { JwtModule } from '@nestjs/jwt';
-import { config } from '../config/config';
+import { PlacesModule } from '../places/places.module';
+import { JwtStrategy } from '../auth/jwt.strategy';
 
 @Module({
   imports: [
+    forwardRef(() => PlacesModule),
     TypeOrmModule.forFeature([UserEntity]),
-    JwtModule.register({
-      secret: config.secretJwt,
-      signOptions: { expiresIn: '1d' },
-    }),
   ],
-  providers: [UsersService],
+  providers: [UsersService, JwtStrategy],
   controllers: [UsersController],
   exports: [UsersService],
 })

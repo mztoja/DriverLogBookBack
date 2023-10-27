@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
-import { UserInterface, UserLangEnum } from '../types';
+import { UserInterface, userLangEnum } from '../types';
 
 @Entity({
   name: 'users',
@@ -8,20 +8,23 @@ export class UserEntity implements UserInterface {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column()
+  pwdHash: string;
+
+  @Column({ nullable: true, default: null })
+  currentTokenId: string | null;
+
   @Column({ type: 'tinyint', default: 0 })
   status: number;
 
   @Column({ type: 'tinyint', default: 0 })
-  lang: UserLangEnum;
+  lang: userLangEnum;
 
   @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   registerAt: string;
 
-  @Column({ unique: true, type: 'varchar', length: 254 })
+  @Column({ unique: true, type: 'varchar', length: 255 })
   email: string;
-
-  @Column({ type: 'varchar', length: 60 })
-  password: string;
 
   @Column({ type: 'varchar', length: 22, nullable: true, default: null })
   firstName: string;

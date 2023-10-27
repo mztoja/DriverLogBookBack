@@ -1,14 +1,14 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { UsersModule } from './users/users.module';
-import { AuthenticationModule } from './authentication/authentication.module';
 import { config } from './config/config';
 import { PlacesModule } from './places/places.module';
 import { LogsModule } from './logs/logs.module';
 import { ToursModule } from './tours/tours.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -24,11 +24,11 @@ import { ToursModule } from './tours/tours.module';
       logging: true,
       synchronize: true,
     }),
-    UsersModule,
-    AuthenticationModule,
-    PlacesModule,
-    LogsModule,
-    ToursModule,
+    forwardRef(() => UsersModule),
+    forwardRef(() => PlacesModule),
+    forwardRef(() => LogsModule),
+    forwardRef(() => ToursModule),
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

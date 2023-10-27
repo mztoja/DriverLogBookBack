@@ -1,7 +1,8 @@
-export interface PlaceCreateDto {
-  userId: string;
+import { placeTypeEnum } from '../../types';
+
+export class PlaceCreateDto {
   isFavorite: boolean;
-  type: number;
+  type: placeTypeEnum;
   name: string;
   street: string;
   code: string;

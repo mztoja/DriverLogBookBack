@@ -11,7 +11,7 @@ export interface RegisterFormInterface {
   country: string;
   defaultCustomer: string;
   bidType: string;
-  amount: string;
+  bid: string;
   currency: string;
   fuelConsumptionType: string;
 }

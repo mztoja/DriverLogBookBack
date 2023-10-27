@@ -1,4 +1,4 @@
-export interface TourCreateDto {
+export class TourCreateDto {
   userId: string;
   tourNr: number;
   status: number;

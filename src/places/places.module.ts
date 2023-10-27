@@ -4,21 +4,14 @@ import { PlacesController } from './places.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PlacesEntity } from './places.entity';
 import { UsersModule } from '../users/users.module';
-import { JwtModule } from '@nestjs/jwt';
-import { config } from '../config/config';
-import { AuthenticationModule } from '../authentication/authentication.module';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
-    forwardRef(() => AuthenticationModule),
     TypeOrmModule.forFeature([PlacesEntity]),
-    UsersModule,
-    JwtModule.register({
-      secret: config.secretJwt,
-      signOptions: { expiresIn: '1d' },
-    }),
+    forwardRef(() => UsersModule),
   ],
-  providers: [PlacesService],
+  providers: [PlacesService, JwtService],
   controllers: [PlacesController],
   exports: [PlacesService],
 })

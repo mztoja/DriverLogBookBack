@@ -1,27 +1,28 @@
-import { UserStatusEnum } from './UserEnums';
-import { UserLangEnum } from './UserEnums';
-import { UserBidTypeEnum } from './UserEnums';
-import { UserFuelContypeEnum } from './UserEnums';
-import { UserFuelConDispEnum } from './UserEnums';
+import { userStatusEnum } from './UserEnums';
+import { userLangEnum } from './UserEnums';
+import { userBidTypeEnum } from './UserEnums';
+import { userFuelContypeEnum } from './UserEnums';
+import { userFuelConDispEnum } from './UserEnums';
 
 export interface UserInterface {
   id: string;
-  status: UserStatusEnum;
-  lang: UserLangEnum;
+  pwdHash: string;
+  currentTokenId: string | null;
+  status: userStatusEnum;
+  lang: userLangEnum;
   registerAt: string;
   email: string;
-  password: string;
   firstName: string;
   lastName: string;
   companyId: number;
   customer: string;
-  bidType: UserBidTypeEnum;
+  bidType: userBidTypeEnum;
   bid: number;
   currency: string;
   markedArrive: number;
   markedDepart: number;
-  fuelConType: UserFuelContypeEnum;
-  fuelConDisp: UserFuelConDispEnum;
+  fuelConType: userFuelContypeEnum;
+  fuelConDisp: userFuelConDispEnum;
   country: string;
   gen: string;
 }

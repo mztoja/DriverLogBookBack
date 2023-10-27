@@ -1,4 +1,4 @@
-export enum PlaceTypeEnum {
+export enum placeTypeEnum {
   other = 0,
   base = 1,
   loadingPlace = 2,
