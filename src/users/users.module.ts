@@ -8,8 +8,8 @@ import { JwtStrategy } from '../auth/jwt.strategy';
 
 @Module({
   imports: [
-    forwardRef(() => PlacesModule),
     TypeOrmModule.forFeature([UserEntity]),
+    forwardRef(() => PlacesModule),
   ],
   providers: [UsersService, JwtStrategy],
   controllers: [UsersController],

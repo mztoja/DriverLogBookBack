@@ -12,6 +12,9 @@ import { UserRegisterDto } from './dto/user.register.dto';
 import { UserInterface } from '../types';
 import { CheckPasswordPipe } from '../pipes/check-password.pipe';
 import { AuthGuard } from '@nestjs/passport';
+import { UserObj } from '../decorators/user-obj.decorator';
+import { UserEntity } from './user.entity';
+import { MarkDepartDto } from './dto/mark.depart.dto';
 
 @Controller('users')
 export class UsersController {
@@ -27,13 +30,8 @@ export class UsersController {
 
   @UseGuards(AuthGuard('jwt'))
   @Patch('markDepart')
-  async markDepart(
-    @Body('userId') userId: string,
-    @Body('placeId') placeId: string,
-  ) {
-    await this.usersService.markDepart(userId, Number(placeId));
-    return {
-      message: 'departure place marked',
-    };
+  async markDepart(@Body() body: MarkDepartDto, @UserObj() user: UserEntity) {
+    console.log(body);
+    return await this.usersService.markDepart(user.id, body.placeId);
   }
 }

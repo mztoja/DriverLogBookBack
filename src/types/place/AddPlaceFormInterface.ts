@@ -1,5 +1,4 @@
 export interface AddPlaceFormInterface {
-  userId: string;
   isFavorite: string;
   type: string;
   name: string;
@@ -10,5 +9,5 @@ export interface AddPlaceFormInterface {
   lat: string;
   lon: string;
   description: string;
-  mark: string;
+  isMarked: string;
 }

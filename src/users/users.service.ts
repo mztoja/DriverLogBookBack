@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from './user.entity';
@@ -12,6 +17,7 @@ export class UsersService {
   constructor(
     @InjectRepository(UserEntity)
     private usersRepository: Repository<UserEntity>,
+    @Inject(PlacesService)
     private placesService: PlacesService,
   ) {}
 
@@ -26,18 +32,6 @@ export class UsersService {
       throw new BadRequestException('email exist');
     }
 
-    const place = await this.placesService.create({
-      isFavorite: false,
-      type: placeTypeEnum.base,
-      name: userDto.companyName,
-      street: userDto.companyStreet,
-      code: userDto.companyPostCode,
-      city: userDto.companyCity,
-      country: userDto.country,
-      lat: 0,
-      lon: 0,
-      description: null,
-    });
     const pwdHash = hashPwd(userDto.password);
     const user = await this.usersRepository.save({
       email: userDto.email,
@@ -51,21 +45,40 @@ export class UsersService {
       bid: userDto.bid,
       currency: userDto.currency,
       fuelConType: userDto.fuelConsumptionType,
-      companyId: place.id,
+      companyId: 0,
     });
-    await this.placesService.setUserId(place.id, user.id);
+
+    const place = await this.placesService.create(
+      {
+        isFavorite: false,
+        type: placeTypeEnum.base,
+        name: userDto.companyName,
+        street: userDto.companyStreet,
+        code: userDto.companyPostCode,
+        city: userDto.companyCity,
+        country: userDto.country,
+        lat: 0,
+        lon: 0,
+        description: null,
+        isMarked: false,
+      },
+      user.id,
+      this.markDepart.bind,
+    );
+    await this.usersRepository.update({ id: user.id }, { companyId: place.id });
     delete user.pwdHash;
     return user;
   }
 
-  async markDepart(userId: string, placeId: number): Promise<void> {
-    await this.usersRepository.update(
-      {
-        id: userId,
-      },
-      {
-        markedDepart: placeId,
-      },
-    );
+  async markDepart(userId: string, placeId: number) {
+    try {
+      await this.usersRepository.update(
+        { id: userId },
+        { markedDepart: placeId },
+      );
+      return placeId;
+    } catch {
+      throw new InternalServerErrorException();
+    }
   }
 }

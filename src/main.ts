@@ -22,6 +22,7 @@ async function bootstrap() {
   app.use(cookieParser());
   app.enableCors({
     origin: config.crossOrigin,
+    methods: 'GET,PATCH,POST,DELETE',
     credentials: true,
   });
   app.useGlobalFilters(new GlobalExceptionFilter());

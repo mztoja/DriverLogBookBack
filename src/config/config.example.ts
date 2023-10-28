@@ -8,5 +8,6 @@
   origin: 'http://localhost:3001',
   secretJwt: 'typeSecretString!',
   hmacKey: 'typeSalt!',
+  tokenExpirationTime: 60 * 60 * 24,
 };
  **/
