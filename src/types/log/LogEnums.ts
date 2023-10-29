@@ -1,4 +1,4 @@
-export enum LogTypeEnum {
+export enum logTypeEnum {
   tours = 1,
   days = 2,
   attachTrailer = 3,

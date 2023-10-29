@@ -1,8 +1,5 @@
 import { createParamDecorator, BadRequestException } from '@nestjs/common';
-import {
-  registerDecorator,
-  ValidationOptions,
-} from 'class-validator';
+import { registerDecorator, ValidationOptions } from 'class-validator';
 
 export const ValidatePlace = createParamDecorator((data, req) => {
   const { placeId, place } = req.body;

@@ -1,4 +1,4 @@
-import { LogTypeEnum } from './LogEnums';
+import { logTypeEnum } from './LogEnums';
 
 export interface LogInterface {
   id: number;
@@ -11,5 +11,5 @@ export interface LogInterface {
   placeId: number;
   odometer: number;
   notes: string;
-  type: LogTypeEnum;
+  type: logTypeEnum;
 }

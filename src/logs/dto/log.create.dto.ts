@@ -1,17 +1,20 @@
-import { IsUUID } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class LogCreateDto {
-  @IsUUID()
-  userId: string;
-  tourId: number;
+  @IsString()
   date: string;
+  @IsString()
+  @IsNotEmpty({ message: 'action' })
   action: string;
+  @IsString()
+  @IsNotEmpty({ message: 'country' })
   country: string;
-  //@ValidatePlace()
+  @IsString()
   place: string;
-  //@ValidatePlace()
+  @IsNumber()
   placeId: number;
+  @IsNumber()
   odometer: number;
+  @IsString()
   notes: string;
-  type: number;
 }

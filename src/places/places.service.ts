@@ -41,7 +41,7 @@ export class PlacesService {
 
   async getPlacesList(userId: string) {
     try {
-      return this.placesRepository.find({
+      return await this.placesRepository.find({
         where: { userId },
         order: { country: 'ASC', code: 'ASC', name: 'ASC' },
       });

@@ -1,10 +1,10 @@
-import { TourStatusEnum } from './TourEnums';
+import { tourStatusEnum } from './TourEnums';
 
 export interface TourInterface {
   id: number;
   tourNr: number;
   userId: string;
-  status: TourStatusEnum;
+  status: tourStatusEnum;
   truck: string;
   startLogId: number;
   stopLogId: number;

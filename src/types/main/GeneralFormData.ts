@@ -1,5 +1,4 @@
 export interface GeneralFormData {
-  userId: string;
   data: string;
   truck: string;
   trailer: string;

@@ -25,13 +25,12 @@ export class UsersController {
   async register(
     @Body() userDto: UserRegisterDto,
   ): Promise<Omit<UserInterface, 'pwdHash'>> {
-    return this.usersService.register(userDto);
+    return await this.usersService.register(userDto);
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Patch('markDepart')
   async markDepart(@Body() body: MarkDepartDto, @UserObj() user: UserEntity) {
-    console.log(body);
     return await this.usersService.markDepart(user.id, body.placeId);
   }
 }

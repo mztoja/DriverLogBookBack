@@ -22,7 +22,6 @@ export class PlacesController {
   @UseGuards(AuthGuard('jwt'))
   @Post('create')
   async create(@Body() body: PlaceCreateDto, @UserObj() user: UserEntity) {
-    console.log('próbuj bladź: ', user);
     return await this.placesService.create(
       body,
       user.id,
