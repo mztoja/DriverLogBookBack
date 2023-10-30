@@ -1,24 +1,25 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { LogsEntity } from './logs.entity';
+import { LogEntity } from './log.entity';
 import { LogCreateDto } from './dto/log.create.dto';
 import { logTypeEnum } from '../types';
 
 @Injectable()
 export class LogsService {
   constructor(
-    @InjectRepository(LogsEntity)
-    private logsRepository: Repository<LogsEntity>,
+    @InjectRepository(LogEntity)
+    private logRepository: Repository<LogEntity>,
   ) {}
+
   async create(
     data: LogCreateDto,
     userId: string,
     tourId: number,
     type: logTypeEnum,
-  ): Promise<LogsEntity> {
+  ): Promise<LogEntity> {
     try {
-      const log = await this.logsRepository.save({
+      return await this.logRepository.save({
         userId,
         placeId: data.placeId,
         place: data.placeId !== 0 ? null : data.place,
@@ -30,21 +31,30 @@ export class LogsService {
         tourId,
         type,
       });
-      return log;
     } catch {
       throw new InternalServerErrorException();
     }
   }
+
   async setAction(id: number, action: string) {
     try {
-      return await this.logsRepository.update(id, { action });
+      return await this.logRepository.update(id, { action });
     } catch {
       throw new InternalServerErrorException();
     }
   }
+
   async setTourId(id: number, tourId: number) {
     try {
-      return await this.logsRepository.update(id, { tourId });
+      return await this.logRepository.update(id, { tourId });
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async find(id: number): Promise<LogEntity> {
+    try {
+      return await this.logRepository.findOne({ where: { id } });
     } catch {
       throw new InternalServerErrorException();
     }

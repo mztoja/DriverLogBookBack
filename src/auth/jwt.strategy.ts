@@ -18,7 +18,7 @@ function cookieExtractor(req: any): null | string {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @InjectRepository(UserEntity)
-    private usersRepository: Repository<UserEntity>,
+    private userRepository: Repository<UserEntity>,
   ) {
     super({
       jwtFromRequest: cookieExtractor,
@@ -31,7 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       return done(new UnauthorizedException(), false);
     }
 
-    const user = await this.usersRepository.findOne({
+    const user = await this.userRepository.findOne({
       where: { currentTokenId: payload.id },
     });
     if (!user) {

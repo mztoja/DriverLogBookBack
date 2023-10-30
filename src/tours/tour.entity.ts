@@ -4,7 +4,7 @@ import { TourInterface } from '../types';
 @Entity({
   name: 'tours',
 })
-export class ToursEntity implements TourInterface {
+export class TourEntity implements TourInterface {
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;
   @Column({ type: 'varchar', length: 36 })

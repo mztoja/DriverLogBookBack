@@ -1,4 +1,11 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ToursService } from './tours.service';
 import { AuthGuard } from '@nestjs/passport';
 import { UserObj } from '../decorators/user-obj.decorator';
@@ -11,7 +18,17 @@ export class ToursController {
 
   @UseGuards(AuthGuard('jwt'))
   @Post('create')
-  async create(@Body() body: TourCreateDto, @UserObj() user: UserEntity) {
-    return await this.toursService.create(body, user.id);
+  async create(@Body() data: TourCreateDto, @UserObj() user: UserEntity) {
+    const activeRoute = await this.toursService.getActiveRoute(user.id);
+    if (activeRoute) {
+      throw new BadRequestException('activeRoute');
+    }
+    return await this.toursService.create(data, user.id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('getActiveRoute')
+  async getActiveRoute(@UserObj() user: UserEntity) {
+    return await this.toursService.getActiveRoute(user.id);
   }
 }

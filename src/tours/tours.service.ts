@@ -1,12 +1,11 @@
 import {
-  BadRequestException,
   Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
-import { ToursEntity } from './tours.entity';
+import { TourEntity } from './tour.entity';
 import { logTypeEnum, tourStatusEnum } from '../types';
 import { TourCreateDto } from './dto/tour.create.dto';
 import { LogsService } from '../logs/logs.service';
@@ -15,29 +14,24 @@ import { LogCreateDto } from '../logs/dto/log.create.dto';
 @Injectable()
 export class ToursService {
   constructor(
-    @InjectRepository(ToursEntity)
-    private toursRepository: Repository<ToursEntity>,
+    @InjectRepository(TourEntity)
+    private tourRepository: Repository<TourEntity>,
     @Inject(LogsService)
     private logsService: LogsService,
   ) {}
-  async getActiveRoute(userId: string): Promise<ToursEntity> {
-    return await this.toursRepository.findOne({
+  async getActiveRoute(userId: string): Promise<TourEntity> {
+    return await this.tourRepository.findOne({
       where: { userId, status: tourStatusEnum.started },
     });
   }
-  async getPreviousRoute(userId: string): Promise<ToursEntity> {
-    return await this.toursRepository.findOne({
+  async getPreviousRoute(userId: string): Promise<TourEntity> {
+    return await this.tourRepository.findOne({
       where: { userId, status: Not(tourStatusEnum.started) },
       order: { id: 'DESC' },
     });
   }
-  async create(data: TourCreateDto, userId: string): Promise<ToursEntity> {
+  async create(data: TourCreateDto, userId: string): Promise<TourEntity> {
     try {
-      const activeRoute = await this.getActiveRoute(userId);
-      if (activeRoute) {
-        throw new BadRequestException('activeRoute');
-      }
-
       const logData: LogCreateDto = {
         country: data.country,
         odometer: data.odometer,
@@ -56,7 +50,7 @@ export class ToursService {
 
       const previousRoute = await this.getPreviousRoute(userId);
 
-      const tour = await this.toursRepository.save({
+      const tour = await this.tourRepository.save({
         userId,
         tourNr: previousRoute ? previousRoute.tourNr + 1 : 1,
         truck: data.truck,

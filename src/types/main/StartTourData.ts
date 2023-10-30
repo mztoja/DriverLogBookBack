@@ -1,11 +1,6 @@
-export interface StartTourData {
-  date: string;
-  action: string;
-  country: string;
-  place: string;
-  placeId: string;
-  odometer: string;
-  notes: string;
+import { AddLogData } from './AddLogData';
+
+export interface StartTourData extends AddLogData {
   truck: string;
   fuelStateBefore: string;
 }

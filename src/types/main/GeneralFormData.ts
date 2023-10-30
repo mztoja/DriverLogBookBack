@@ -1,5 +1,5 @@
 export interface GeneralFormData {
-  data: string;
+  date: string;
   truck: string;
   trailer: string;
   odometer: string;
@@ -10,4 +10,9 @@ export interface GeneralFormData {
   placeId: string;
   country: string;
   notes: string;
+  doubleCrew: 'false' | 'true';
+  cardInserted: 'false' | 'true';
+  cardTakeOut: 'false' | 'true';
+  driveTime: string;
+  driveTime2: string;
 }

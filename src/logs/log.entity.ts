@@ -4,7 +4,7 @@ import { LogInterface } from '../types';
 @Entity({
   name: 'logs',
 })
-export class LogsEntity implements LogInterface {
+export class LogEntity implements LogInterface {
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;
   @Column({ type: 'varchar', length: 36 })

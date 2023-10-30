@@ -19,7 +19,7 @@ import { UserInterface } from '../types';
 export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
-    private usersRepository: Repository<UserEntity>,
+    private userRepository: Repository<UserEntity>,
   ) {}
 
   private createToken(currentTokenId: string): {
@@ -40,11 +40,11 @@ export class AuthService {
     let userWithThisToken = null;
     do {
       token = uuid();
-      userWithThisToken = await this.usersRepository.findOne({
+      userWithThisToken = await this.userRepository.findOne({
         where: { currentTokenId: token },
       });
     } while (!!userWithThisToken);
-    await this.usersRepository.update(
+    await this.userRepository.update(
       {
         id: user.id,
       },
@@ -57,7 +57,7 @@ export class AuthService {
 
   async login(loginDto: AuthLoginDto, res: Response): Promise<any> {
     try {
-      const user = await this.usersRepository.findOne({
+      const user = await this.userRepository.findOne({
         where: { email: loginDto.email, pwdHash: hashPwd(loginDto.password) },
       });
       delete user.pwdHash;
@@ -78,7 +78,7 @@ export class AuthService {
 
   async logout(user: UserEntity, res: Response) {
     try {
-      await this.usersRepository.findOne({
+      await this.userRepository.findOne({
         where: { id: user.id, currentTokenId: null },
       });
       return res

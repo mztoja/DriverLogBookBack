@@ -41,6 +41,7 @@
     "rxjs": "^7.8.1",
     "save-dev": "^0.0.1-security",
     "typeorm": "^0.3.17",
+    "types": "^0.1.1",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

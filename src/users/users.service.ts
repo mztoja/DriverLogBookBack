@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -16,7 +15,7 @@ import { hashPwd } from '../utlis/hash-pwd';
 export class UsersService {
   constructor(
     @InjectRepository(UserEntity)
-    private usersRepository: Repository<UserEntity>,
+    private userRepository: Repository<UserEntity>,
     @Inject(PlacesService)
     private placesService: PlacesService,
   ) {}
@@ -25,16 +24,8 @@ export class UsersService {
     userDto: UserRegisterDto,
   ): Promise<Omit<UserEntity, 'pwdHash'>> {
     try {
-      const checkUser = await this.usersRepository.findOne({
-        where: { email: userDto.email },
-      });
-
-      if (checkUser) {
-        throw new BadRequestException('email exist');
-      }
-
       const pwdHash = hashPwd(userDto.password);
-      const user = await this.usersRepository.save({
+      const user = await this.userRepository.save({
         email: userDto.email,
         pwdHash,
         firstName: userDto.firstName,
@@ -66,7 +57,7 @@ export class UsersService {
         user.id,
         this.markDepart.bind,
       );
-      await this.usersRepository.update(
+      await this.userRepository.update(
         { id: user.id },
         { companyId: place.id },
       );
@@ -79,11 +70,19 @@ export class UsersService {
 
   async markDepart(userId: string, placeId: number) {
     try {
-      await this.usersRepository.update(
+      await this.userRepository.update(
         { id: userId },
         { markedDepart: placeId },
       );
       return placeId;
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async find(email: string) {
+    try {
+      return await this.userRepository.findOne({ where: { email } });
     } catch {
       throw new InternalServerErrorException();
     }

@@ -4,7 +4,7 @@ import { PlaceInterface } from '../types';
 @Entity({
   name: 'places',
 })
-export class PlacesEntity implements PlaceInterface {
+export class PlaceEntity implements PlaceInterface {
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;
 

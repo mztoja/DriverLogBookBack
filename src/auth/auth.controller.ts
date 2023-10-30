@@ -35,7 +35,6 @@ export class AuthController {
   @Get('/user')
   async user(@Req() request: Request, @UserObj() user: UserEntity) {
     delete user.pwdHash;
-    console.log(user);
     return user;
   }
 

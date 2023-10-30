@@ -1,23 +1,23 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PlacesEntity } from './places.entity';
+import { PlaceEntity } from './place.entity';
 import { PlaceCreateDto } from './dto/place.create.dto';
 
 @Injectable()
 export class PlacesService {
   constructor(
-    @InjectRepository(PlacesEntity)
-    private placesRepository: Repository<PlacesEntity>,
+    @InjectRepository(PlaceEntity)
+    private placeRepository: Repository<PlaceEntity>,
   ) {}
 
   async create(
     data: PlaceCreateDto,
     userId: string,
     markDepartFn: (userId: string, placeId: number) => Promise<void>,
-  ): Promise<PlacesEntity> {
+  ): Promise<PlaceEntity> {
     try {
-      const place = await this.placesRepository.save({
+      const place = await this.placeRepository.save({
         userId,
         isFavorite: data.isFavorite,
         type: data.type,
@@ -41,7 +41,7 @@ export class PlacesService {
 
   async getPlacesList(userId: string) {
     try {
-      return await this.placesRepository.find({
+      return await this.placeRepository.find({
         where: { userId },
         order: { country: 'ASC', code: 'ASC', name: 'ASC' },
       });

@@ -2,12 +2,12 @@ import { forwardRef, Module } from '@nestjs/common';
 import { PlacesService } from './places.service';
 import { PlacesController } from './places.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PlacesEntity } from './places.entity';
+import { PlaceEntity } from './place.entity';
 import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PlacesEntity]),
+    TypeOrmModule.forFeature([PlaceEntity]),
     forwardRef(() => UsersModule),
   ],
   providers: [PlacesService],
