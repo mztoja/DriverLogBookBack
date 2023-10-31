@@ -15,4 +15,5 @@ export interface GeneralFormData {
   cardTakeOut: 'false' | 'true';
   driveTime: string;
   driveTime2: string;
+  addNewBorder: 'false' | 'true';
 }

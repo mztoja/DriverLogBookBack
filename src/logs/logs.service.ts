@@ -1,15 +1,22 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LogEntity } from './log.entity';
 import { LogCreateDto } from './dto/log.create.dto';
 import { logTypeEnum } from '../types';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class LogsService {
   constructor(
     @InjectRepository(LogEntity)
     private logRepository: Repository<LogEntity>,
+    @Inject(UsersService)
+    private usersService: UsersService,
   ) {}
 
   async create(
@@ -19,6 +26,7 @@ export class LogsService {
     type: logTypeEnum,
   ): Promise<LogEntity> {
     try {
+      await this.usersService.countryEnter(userId, data.country);
       return await this.logRepository.save({
         userId,
         placeId: data.placeId,

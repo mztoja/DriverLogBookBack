@@ -31,7 +31,6 @@ export function IsCustomBoolean(validationOptions?: ValidationOptions) {
       options: validationOptions,
       validator: {
         validate(value: any) {
-          console.log('Walidujemy na ostro!: ', value);
           if (value === '0' || value === '1') {
             if (value === '0') {
               value = false;

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Patch,
@@ -25,6 +26,10 @@ export class UsersController {
   async register(
     @Body() userDto: UserRegisterDto,
   ): Promise<Omit<UserInterface, 'pwdHash'>> {
+    const checkUser = await this.usersService.find(userDto.email);
+    if (checkUser) {
+      throw new BadRequestException('email exist');
+    }
     return await this.usersService.register(userDto);
   }
 

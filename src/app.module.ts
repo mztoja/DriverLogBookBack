@@ -9,6 +9,7 @@ import { LogsModule } from './logs/logs.module';
 import { ToursModule } from './tours/tours.module';
 import { AuthModule } from './auth/auth.module';
 import { DaysModule } from './days/days.module';
+import { BordersModule } from './borders/borders.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { DaysModule } from './days/days.module';
     forwardRef(() => ToursModule),
     AuthModule,
     DaysModule,
+    BordersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

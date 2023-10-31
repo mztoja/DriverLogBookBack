@@ -4,3 +4,4 @@ export * from './StartTourData';
 export * from './StartDayData';
 export * from './StopDayData';
 export * from './AddLogData';
+export * from './BorderCrossData';

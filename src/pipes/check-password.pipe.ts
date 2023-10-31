@@ -6,7 +6,6 @@ export class CheckPasswordPipe implements PipeTransform {
   constructor() {}
 
   transform(value: any): string {
-    console.log(value);
     if (value.password && !passwordRegExp().test(value.password)) {
       throw new BadRequestException('password');
     }

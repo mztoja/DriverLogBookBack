@@ -80,6 +80,15 @@ export class UsersService {
     }
   }
 
+  async countryEnter(userId: string, country: string) {
+    try {
+      await this.userRepository.update({ id: userId }, { country });
+      return country;
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
+
   async find(email: string) {
     try {
       return await this.userRepository.findOne({ where: { email } });
