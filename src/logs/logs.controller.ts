@@ -2,6 +2,8 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
+  Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -12,7 +14,7 @@ import { UserEntity } from '../users/user.entity';
 import { LogCreateDto } from './dto/log.create.dto';
 import { ToursService } from '../tours/tours.service';
 import { LogEntity } from './log.entity';
-import { logTypeEnum } from '../types';
+import { LogListResponse, logTypeEnum } from '../types';
 import { LogBorderDto } from './dto/log.border.dto';
 import { BordersService } from '../borders/borders.service';
 
@@ -65,5 +67,20 @@ export class LogsController {
       activeRoute.id,
       logTypeEnum.crossBorder,
     );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/:page/:perPage/:search?')
+  async get(
+    @Param('page') page: string,
+    @Param('perPage') perPage: string,
+    @Param('search') searchParam: string,
+    @UserObj() user: UserEntity,
+  ): Promise<LogListResponse> {
+    let search = searchParam || '';
+    if (search.length < 2) {
+      search = null;
+    }
+    return await this.logsService.get(user.id, page, perPage, search);
   }
 }

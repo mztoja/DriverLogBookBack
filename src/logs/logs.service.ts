@@ -4,11 +4,12 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { LogEntity } from './log.entity';
 import { LogCreateDto } from './dto/log.create.dto';
-import { logTypeEnum } from '../types';
+import { LogListResponse, logTypeEnum } from '../types';
 import { UsersService } from '../users/users.service';
+import { PlaceEntity } from '../places/place.entity';
 
 @Injectable()
 export class LogsService {
@@ -63,6 +64,42 @@ export class LogsService {
   async find(id: number): Promise<LogEntity> {
     try {
       return await this.logRepository.findOne({ where: { id } });
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async get(
+    userId: string,
+    page: string,
+    perPage: string,
+    search: string | null,
+  ): Promise<LogListResponse> {
+    try {
+      const query = await this.logRepository
+        .createQueryBuilder('log')
+        .where('log.userId = :userId', { userId })
+        .leftJoinAndMapOne(
+          'log.placeData',
+          PlaceEntity,
+          'place',
+          'log.placeId = place.id',
+        )
+        .orderBy('log.date', 'DESC')
+        .skip((Number(page) - 1) * Number(perPage))
+        .take(Number(perPage));
+      if (search) {
+        query.andWhere(
+          new Brackets((qb) => {
+            qb.where('log.action LIKE :search', {
+              search: `%${search}%`,
+            }).orWhere('log.date LIKE :search', { search: `%${search}%` });
+          }),
+        );
+      }
+      //const totalPages = Math.ceil(totalItems / Number(perPage));
+      const [items, totalItems] = await query.getManyAndCount();
+      return { items, totalItems };
     } catch {
       throw new InternalServerErrorException();
     }

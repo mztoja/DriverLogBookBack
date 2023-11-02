@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BorderEntity } from './border.entity';
@@ -11,10 +11,14 @@ export class BordersService {
   ) {}
 
   async getByCountry(country: string): Promise<BorderEntity[]> {
-    return await this.borderRepository.find({
-      where: [{ country1: country }, { country2: country }],
-      order: { place: 'ASC' },
-    });
+    try {
+      return await this.borderRepository.find({
+        where: [{ country1: country }, { country2: country }],
+        order: { place: 'ASC' },
+      });
+    } catch {
+      throw new InternalServerErrorException();
+    }
   }
 
   async create(
@@ -22,10 +26,14 @@ export class BordersService {
     country1: string,
     country2: string,
   ): Promise<BorderEntity> {
-    return await this.borderRepository.save({
-      place,
-      country1,
-      country2,
-    });
+    try {
+      return await this.borderRepository.save({
+        place,
+        country1,
+        country2,
+      });
+    } catch {
+      throw new InternalServerErrorException();
+    }
   }
 }
