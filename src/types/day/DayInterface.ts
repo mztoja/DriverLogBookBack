@@ -1,4 +1,5 @@
 import { dayCardStateEnum, dayStatusEnum } from './DayEnums';
+import { LogInterface } from '../log';
 
 export interface DayInterface {
   id: number;
@@ -6,7 +7,9 @@ export interface DayInterface {
   status: dayStatusEnum;
   tourId: number;
   startLogId: number;
+  startData?: LogInterface;
   stopLogId: number;
+  stopData?: LogInterface | null;
   cardState: dayCardStateEnum;
   distance: number;
   driveTime: string;

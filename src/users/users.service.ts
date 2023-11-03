@@ -10,6 +10,7 @@ import { UserRegisterDto } from './dto/user.register.dto';
 import { placeTypeEnum } from '../types';
 import { PlacesService } from '../places/places.service';
 import { hashPwd } from '../utlis/hash-pwd';
+import { UserUpdateDto } from './dto/user.update.dto';
 
 @Injectable()
 export class UsersService {
@@ -92,6 +93,28 @@ export class UsersService {
   async find(email: string) {
     try {
       return await this.userRepository.findOne({ where: { email } });
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async update(userId: string, user: UserUpdateDto): Promise<UserEntity> {
+    try {
+      await this.userRepository.update(
+        { id: userId },
+        {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          lang: user.lang,
+          companyId: user.companyId,
+          customer: user.customer,
+          bidType: user.bidType,
+          bid: user.bid,
+          currency: user.currency,
+          fuelConType: user.fuelConsumptionType,
+        },
+      );
+      return this.userRepository.findOne({ where: { id: userId } });
     } catch {
       throw new InternalServerErrorException();
     }

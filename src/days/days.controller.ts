@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -14,7 +15,7 @@ import { DayCreateDto } from './dto/day.create.dto';
 import { DayEntity } from './day.entity';
 import { ToursService } from '../tours/tours.service';
 import { DayFinishDto } from './dto/day.finish.dto';
-import { UpdateResult } from 'typeorm';
+import { DayListResponse } from '../types/day/DayListResponse';
 
 @Controller('days')
 export class DaysController {
@@ -57,7 +58,7 @@ export class DaysController {
   async finish(
     @Body() data: DayFinishDto,
     @UserObj() user: UserEntity,
-  ): Promise<UpdateResult> {
+  ): Promise<DayEntity> {
     const activeRoute = await this.toursService.getActiveRoute(user.id);
     if (!activeRoute) {
       throw new BadRequestException('noActiveRoute');
@@ -67,5 +68,15 @@ export class DaysController {
       throw new BadRequestException('dayNotExist');
     }
     return await this.daysService.finish(data, user.fuelConType, activeDay);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/:page/:perPage/:search?')
+  async get(
+    @Param('page') page: string,
+    @Param('perPage') perPage: string,
+    @UserObj() user: UserEntity,
+  ): Promise<DayListResponse> {
+    return await this.daysService.get(user.id, page, perPage);
   }
 }

@@ -16,6 +16,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from './user.entity';
 import { MarkDepartDto } from './dto/mark.depart.dto';
+import { UserUpdateDto } from './dto/user.update.dto';
 
 @Controller('users')
 export class UsersController {
@@ -37,5 +38,14 @@ export class UsersController {
   @Patch('markDepart')
   async markDepart(@Body() body: MarkDepartDto, @UserObj() user: UserEntity) {
     return await this.usersService.markDepart(user.id, body.placeId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('userUpdate')
+  async userUpdate(
+    @UserObj() user: UserEntity,
+    @Body() body: UserUpdateDto,
+  ): Promise<UserEntity> {
+    return await this.usersService.update(user.id, body);
   }
 }

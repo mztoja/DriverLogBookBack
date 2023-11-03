@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PlaceEntity } from './place.entity';
 import { PlaceCreateDto } from './dto/place.create.dto';
+import { placeTypeEnum } from '../types';
 
 @Injectable()
 export class PlacesService {
@@ -39,10 +40,21 @@ export class PlacesService {
     }
   }
 
-  async getPlacesList(userId: string) {
+  async getPlacesList(userId: string): Promise<PlaceEntity[]> {
     try {
       return await this.placeRepository.find({
         where: { userId },
+        order: { country: 'ASC', code: 'ASC', name: 'ASC' },
+      });
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async getCompanyList(userId: string): Promise<PlaceEntity[]> {
+    try {
+      return await this.placeRepository.find({
+        where: { userId, type: placeTypeEnum.base },
         order: { country: 'ASC', code: 'ASC', name: 'ASC' },
       });
     } catch {

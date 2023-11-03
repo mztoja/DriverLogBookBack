@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository, UpdateResult } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { LogsService } from '../logs/logs.service';
 import { DayEntity } from './day.entity';
 import { DayCreateDto } from './dto/day.create.dto';
@@ -17,6 +17,9 @@ import {
 import { LogCreateDto } from '../logs/dto/log.create.dto';
 import { DayFinishDto } from './dto/day.finish.dto';
 import { subtractDates } from '../utlis/subtractDates';
+import { PlaceEntity } from '../places/place.entity';
+import { LogEntity } from '../logs/log.entity';
+import { DayListResponse } from '../types/day/DayListResponse';
 
 @Injectable()
 export class DaysService {
@@ -111,7 +114,7 @@ export class DaysService {
     data: DayFinishDto,
     userFuelConType: number,
     activeDay: DayEntity,
-  ): Promise<UpdateResult> {
+  ): Promise<DayEntity> {
     try {
       const startLog = await this.logsService.find(activeDay.startLogId);
       const logData: LogCreateDto = {
@@ -129,7 +132,7 @@ export class DaysService {
         activeDay.tourId,
         logTypeEnum.days,
       );
-      return await this.dayRepository.update(
+      await this.dayRepository.update(
         { id: activeDay.id },
         {
           status: dayStatusEnum.finished,
@@ -150,6 +153,50 @@ export class DaysService {
           workTime: subtractDates(stopLog.date, startLog.date),
         },
       );
+      return await this.dayRepository.findOne({ where: { id: activeDay.id } });
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async get(
+    userId: string,
+    page: string,
+    perPage: string,
+  ): Promise<DayListResponse> {
+    try {
+      const query = await this.dayRepository
+        .createQueryBuilder('day')
+        .where('day.userId = :userId', { userId })
+        .leftJoinAndMapOne(
+          'day.startData',
+          LogEntity,
+          'startLog',
+          'day.startLogId = startLog.id',
+        )
+        .leftJoinAndMapOne(
+          'day.stopData',
+          LogEntity,
+          'stopLog',
+          'day.stopLogId = stopLog.id',
+        )
+        .leftJoinAndMapOne(
+          'startLog.placeData',
+          PlaceEntity,
+          'startPlace',
+          'startLog.placeId = startPlace.id',
+        )
+        .leftJoinAndMapOne(
+          'stopLog.placeData',
+          PlaceEntity,
+          'stopPlace',
+          'stopLog.placeId = stopPlace.id',
+        )
+        .orderBy('day.id', 'DESC')
+        .skip((Number(page) - 1) * Number(perPage))
+        .take(Number(perPage));
+      const [items, totalItems] = await query.getManyAndCount();
+      return { items, totalItems };
     } catch {
       throw new InternalServerErrorException();
     }
