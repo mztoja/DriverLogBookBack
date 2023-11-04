@@ -6,6 +6,7 @@ export interface TourInterface {
   userId: string;
   status: tourStatusEnum;
   truck: string;
+  trailer: string | null;
   startLogId: number;
   stopLogId: number;
   driveTime: string;

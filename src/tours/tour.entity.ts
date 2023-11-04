@@ -15,6 +15,8 @@ export class TourEntity implements TourInterface {
   status: number;
   @Column({ type: 'varchar', length: 10 })
   truck: string;
+  @Column({ type: 'varchar', length: 10, nullable: true, default: null })
+  trailer: string | null;
   @Column({ type: 'int' })
   startLogId: number;
   @Column({ type: 'int' })

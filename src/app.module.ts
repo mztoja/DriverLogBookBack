@@ -10,6 +10,8 @@ import { ToursModule } from './tours/tours.module';
 import { AuthModule } from './auth/auth.module';
 import { DaysModule } from './days/days.module';
 import { BordersModule } from './borders/borders.module';
+import { LoadsModule } from './loads/loads.module';
+import { VehiclesModule } from './vehicles/vehicles.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { BordersModule } from './borders/borders.module';
     AuthModule,
     DaysModule,
     BordersModule,
+    LoadsModule,
+    VehiclesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -68,4 +68,8 @@ export class ToursService {
       throw new InternalServerErrorException();
     }
   }
+
+  async changeTrailer(id: number, trailer: string): Promise<void> {
+    await this.tourRepository.update({ id }, { trailer });
+  }
 }

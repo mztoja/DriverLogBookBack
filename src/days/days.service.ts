@@ -105,8 +105,8 @@ export class DaysService {
         status: dayStatusEnum.started,
         breakTime: brakeTime,
       });
-    } catch (e) {
-      throw new InternalServerErrorException(e.message);
+    } catch {
+      throw new InternalServerErrorException();
     }
   }
 

@@ -4,4 +4,10 @@ export type ActivitiesTypes =
   | 'dayStart'
   | 'dayStop'
   | 'borderCross'
-  | 'anotherLog';
+  | 'anotherLog'
+  | 'attachTrailer'
+  | 'detachTrailer'
+  | 'loadingArrival'
+  | 'unloadingArrival'
+  | 'loadingCompleted'
+  | 'unloadingCompleted';

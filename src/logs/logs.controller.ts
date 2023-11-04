@@ -17,6 +17,7 @@ import { LogEntity } from './log.entity';
 import { LogListResponse, logTypeEnum } from '../types';
 import { LogBorderDto } from './dto/log.border.dto';
 import { BordersService } from '../borders/borders.service';
+import { UsersService } from '../users/users.service';
 
 @Controller('logs')
 export class LogsController {
@@ -24,6 +25,7 @@ export class LogsController {
     private readonly logsService: LogsService,
     private readonly toursService: ToursService,
     private readonly bordersService: BordersService,
+    private readonly usersService: UsersService,
   ) {}
 
   @UseGuards(AuthGuard('jwt'))
@@ -82,5 +84,73 @@ export class LogsController {
       search = null;
     }
     return await this.logsService.get(user.id, page, perPage, search);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('attachTrailer')
+  async attachTrailer(
+    @Body() data: LogCreateDto,
+    @UserObj() user: UserEntity,
+  ): Promise<LogEntity> {
+    const activeRoute = await this.toursService.getActiveRoute(user.id);
+    if (!activeRoute) {
+      throw new BadRequestException('noActiveRoute');
+    }
+    if (activeRoute.trailer) {
+      throw new BadRequestException('trailerExist');
+    }
+    const trailer = data.action.split(': ')[1];
+    await this.toursService.changeTrailer(activeRoute.id, trailer);
+    return await this.logsService.create(
+      data,
+      user.id,
+      activeRoute.id,
+      logTypeEnum.attachTrailer,
+    );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('detachTrailer')
+  async detachTrailer(
+    @Body() data: LogCreateDto,
+    @UserObj() user: UserEntity,
+  ): Promise<LogEntity> {
+    const activeRoute = await this.toursService.getActiveRoute(user.id);
+    if (!activeRoute) {
+      throw new BadRequestException('noActiveRoute');
+    }
+    if (!activeRoute.trailer) {
+      throw new BadRequestException('noTrailer');
+    }
+    data.action = data.action + ': ' + activeRoute.trailer;
+    await this.toursService.changeTrailer(activeRoute.id, null);
+    return await this.logsService.create(
+      data,
+      user.id,
+      activeRoute.id,
+      logTypeEnum.detachTrailer,
+    );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('loadingArrival')
+  async loadingArrival(
+    @Body() data: LogCreateDto,
+    @UserObj() user: UserEntity,
+  ): Promise<LogEntity> {
+    const activeRoute = await this.toursService.getActiveRoute(user.id);
+    if (!activeRoute) {
+      throw new BadRequestException('noActiveRoute');
+    }
+    await this.usersService.markDepart(user.id, 0);
+    if (data.placeId !== 0) {
+      await this.usersService.markArrival(user.id, data.placeId);
+    }
+    return await this.logsService.create(
+      data,
+      user.id,
+      activeRoute.id,
+      logTypeEnum.arrivedToLoading,
+    );
   }
 }

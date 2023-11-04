@@ -81,6 +81,18 @@ export class UsersService {
     }
   }
 
+  async markArrival(userId: string, placeId: number) {
+    try {
+      await this.userRepository.update(
+        { id: userId },
+        { markedArrive: placeId },
+      );
+      return placeId;
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
+
   async countryEnter(userId: string, country: string) {
     try {
       await this.userRepository.update({ id: userId }, { country });
