@@ -1,4 +1,5 @@
 import { loadStatusEnum } from './LoadEnums';
+import { PlaceInterface } from '../place';
 
 export interface LoadInterface {
   id: number;
@@ -11,6 +12,7 @@ export interface LoadInterface {
   unloadingLogId: number;
   senderId: number;
   receiverId: number;
+  receiverData?: PlaceInterface;
   description: string;
   quantity: string;
   weight: number;

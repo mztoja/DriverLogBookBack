@@ -61,4 +61,12 @@ export class PlacesService {
       throw new InternalServerErrorException();
     }
   }
+
+  async findById(id: number): Promise<PlaceEntity> {
+    try {
+      return await this.placeRepository.findOne({ where: { id } });
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
 }

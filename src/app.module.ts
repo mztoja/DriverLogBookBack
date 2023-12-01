@@ -24,7 +24,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
       database: config.dbDatabase,
       entities: ['dist/**/**.entity{.ts,.js}'],
       bigNumberStrings: false,
-      logging: true,
+      logging: false,
       synchronize: true,
     }),
     forwardRef(() => UsersModule),

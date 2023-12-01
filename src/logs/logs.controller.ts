@@ -153,4 +153,22 @@ export class LogsController {
       logTypeEnum.arrivedToLoading,
     );
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('unloadingArrival')
+  async unloadingArrival(
+    @Body() data: LogCreateDto,
+    @UserObj() user: UserEntity,
+  ): Promise<LogEntity> {
+    const activeRoute = await this.toursService.getActiveRoute(user.id);
+    if (!activeRoute) {
+      throw new BadRequestException('noActiveRoute');
+    }
+    return await this.logsService.create(
+      data,
+      user.id,
+      activeRoute.id,
+      logTypeEnum.arrivedToLoading,
+    );
+  }
 }

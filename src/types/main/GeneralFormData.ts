@@ -23,4 +23,5 @@ export interface GeneralFormData {
   quantity: string;
   weight: string;
   reference: string;
+  loadId: string;
 }

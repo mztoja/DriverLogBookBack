@@ -6,3 +6,4 @@ export * from './StopDayData';
 export * from './AddLogData';
 export * from './BorderCrossData';
 export * from './AddLoadingData';
+export * from './UnloadingData';
