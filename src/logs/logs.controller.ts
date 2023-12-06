@@ -18,6 +18,8 @@ import { LogListResponse, logTypeEnum } from '../types';
 import { LogBorderDto } from './dto/log.border.dto';
 import { BordersService } from '../borders/borders.service';
 import { UsersService } from '../users/users.service';
+import { LoadsService } from '../loads/loads.service';
+import { LogDetachTrailerDto } from "./dto/log.detach-trailer.dto";
 
 @Controller('logs')
 export class LogsController {
@@ -26,6 +28,7 @@ export class LogsController {
     private readonly toursService: ToursService,
     private readonly bordersService: BordersService,
     private readonly usersService: UsersService,
+    private readonly loadsService: LoadsService,
   ) {}
 
   @UseGuards(AuthGuard('jwt'))
@@ -112,7 +115,7 @@ export class LogsController {
   @UseGuards(AuthGuard('jwt'))
   @Post('detachTrailer')
   async detachTrailer(
-    @Body() data: LogCreateDto,
+    @Body() data: LogDetachTrailerDto,
     @UserObj() user: UserEntity,
   ): Promise<LogEntity> {
     const activeRoute = await this.toursService.getActiveRoute(user.id);
@@ -122,7 +125,31 @@ export class LogsController {
     if (!activeRoute.trailer) {
       throw new BadRequestException('noTrailer');
     }
+    const unloadedLoads = await this.loadsService.getNotUnloadedLoads(user.id);
+    const trailerLoads = unloadedLoads.filter(
+      (load) => load.vehicle === activeRoute.trailer,
+    );
     data.action = data.action + ': ' + activeRoute.trailer;
+    if (trailerLoads.length > 0) {
+      trailerLoads.map(async (load) => {
+        await this.loadsService.unload(
+          {
+            loadId: load.id,
+            isPlaceAsReceiver: false,
+            notes: data.action,
+            country: data.country,
+            odometer: data.odometer,
+            placeId: data.placeId,
+            place: data.place,
+            date: data.date,
+            action: data.unloadAction,
+          },
+          load,
+          activeRoute.id,
+          user.id,
+        );
+      });
+    }
     await this.toursService.changeTrailer(activeRoute.id, null);
     return await this.logsService.create(
       data,
@@ -168,7 +195,7 @@ export class LogsController {
       data,
       user.id,
       activeRoute.id,
-      logTypeEnum.arrivedToLoading,
+      logTypeEnum.arrivedToUnloading,
     );
   }
 }

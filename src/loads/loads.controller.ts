@@ -6,6 +6,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { LoadsService } from './loads.service';
@@ -15,10 +16,11 @@ import { UserEntity } from '../users/user.entity';
 import { LoadEntity } from './load.entity';
 import { LoadCreateDto } from './dto/load.create.dto';
 import { ToursService } from '../tours/tours.service';
-import { LoadInterface } from '../types';
+import { LoadInterface, loadStatusEnum } from '../types';
 import { PlaceEntity } from '../places/place.entity';
 import { PlacesService } from '../places/places.service';
 import { UsersService } from '../users/users.service';
+import { LoadUnloadDto } from './dto/load.unload.dto';
 
 @Controller('loads')
 export class LoadsController {
@@ -41,6 +43,35 @@ export class LoadsController {
     }
     await this.usersService.markArrival(user.id, 0);
     return this.loadsService.create(user.id, data, activeRoute.id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('unload')
+  async unload(
+    @Body() data: LoadUnloadDto,
+    @UserObj() user: UserEntity,
+  ): Promise<LoadEntity> {
+    const activeRoute = await this.toursService.getActiveRoute(user.id);
+    if (!activeRoute) {
+      throw new BadRequestException('noActiveRoute');
+    }
+    if (activeRoute.userId !== user.id) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+    const load = await this.loadsService.findById(data.loadId);
+    if (!load) {
+      throw new BadRequestException('noChosenLoad');
+    }
+    if (load.userId !== user.id) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+    if (load.status === loadStatusEnum.unloaded) {
+      throw new BadRequestException('chosenLoadIsUnloaded');
+    }
+    if (data.isPlaceAsReceiver && load.receiverId === 0) {
+      throw new BadRequestException('noLoadReceiver');
+    }
+    return await this.loadsService.unload(data, load, activeRoute.id, user.id);
   }
 
   @UseGuards(AuthGuard('jwt'))

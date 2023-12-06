@@ -6,6 +6,7 @@ import { LogEntity } from './log.entity';
 import { ToursModule } from '../tours/tours.module';
 import { UsersModule } from '../users/users.module';
 import { BordersModule } from '../borders/borders.module';
+import { LoadsModule } from '../loads/loads.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { BordersModule } from '../borders/borders.module';
     forwardRef(() => ToursModule),
     forwardRef(() => UsersModule),
     forwardRef(() => BordersModule),
+    forwardRef(() => LoadsModule),
   ],
   providers: [LogsService],
   controllers: [LogsController],

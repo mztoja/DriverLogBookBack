@@ -18,5 +18,6 @@ import { UsersModule } from '../users/users.module';
   ],
   providers: [LoadsService],
   controllers: [LoadsController],
+  exports: [LoadsService],
 })
 export class LoadsModule {}

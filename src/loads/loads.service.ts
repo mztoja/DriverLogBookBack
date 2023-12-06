@@ -8,9 +8,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LoadEntity } from './load.entity';
 import { LogsService } from '../logs/logs.service';
-import { LoadInterface, logTypeEnum } from '../types';
-import { loadStatusEnum } from '../types/load/LoadEnums';
+import { LoadInterface, logTypeEnum, loadStatusEnum } from '../types';
 import { PlaceEntity } from '../places/place.entity';
+import { LoadUnloadDto } from './dto/load.unload.dto';
 
 @Injectable()
 export class LoadsService {
@@ -106,6 +106,44 @@ export class LoadsService {
         weight: data.weight,
         unloadingLogId: 0,
       });
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async unload(
+    data: LoadUnloadDto,
+    load: LoadEntity,
+    tourId: number,
+    userId: string,
+  ): Promise<LoadEntity> {
+    try {
+      const startLog = await this.logsService.find(load.loadingLogId);
+      const action = data.action.replace('.value.', `${load.loadNr}`);
+      const stopLog = await this.logsService.create(
+        {
+          date: data.date,
+          place: data.isPlaceAsReceiver ? '' : data.place,
+          placeId: data.isPlaceAsReceiver ? load.receiverId : data.placeId,
+          country: data.country,
+          odometer: data.odometer,
+          action: action,
+          notes: data.notes,
+        },
+        userId,
+        tourId,
+        logTypeEnum.finishUnloading,
+      );
+      const distance = stopLog.odometer - startLog.odometer;
+      await this.loadRepository.update(
+        { id: load.id },
+        {
+          status: loadStatusEnum.unloaded,
+          distance: distance < 0 ? 0 : distance,
+          unloadingLogId: stopLog.id,
+        },
+      );
+      return await this.findById(load.id);
     } catch {
       throw new InternalServerErrorException();
     }

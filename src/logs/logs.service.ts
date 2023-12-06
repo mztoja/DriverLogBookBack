@@ -85,7 +85,7 @@ export class LogsService {
           'place',
           'log.placeId = place.id',
         )
-        .orderBy('log.date', 'DESC')
+        .orderBy('log.id', 'DESC')
         .skip((Number(page) - 1) * Number(perPage))
         .take(Number(perPage));
       if (search) {
