@@ -10,7 +10,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { LoadsService } from './loads.service';
-import { AuthGuard } from '@nestjs/passport';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
 import { LoadEntity } from './load.entity';
@@ -21,6 +20,7 @@ import { PlaceEntity } from '../places/place.entity';
 import { PlacesService } from '../places/places.service';
 import { UsersService } from '../users/users.service';
 import { LoadUnloadDto } from './dto/load.unload.dto';
+import { JwtAuthGuard } from '../guards/jwt.auth.guard';
 
 @Controller('loads')
 export class LoadsController {
@@ -31,7 +31,7 @@ export class LoadsController {
     private readonly usersService: UsersService,
   ) {}
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post('create')
   async create(
     @Body() data: LoadCreateDto,
@@ -45,7 +45,7 @@ export class LoadsController {
     return this.loadsService.create(user.id, data, activeRoute.id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post('unload')
   async unload(
     @Body() data: LoadUnloadDto,
@@ -74,7 +74,7 @@ export class LoadsController {
     return await this.loadsService.unload(data, load, activeRoute.id, user.id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Get('getNotUnloadedLoads')
   async getNotUnloadedLoads(
     @UserObj() user: UserEntity,
@@ -82,7 +82,7 @@ export class LoadsController {
     return this.loadsService.getNotUnloadedLoads(user.id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Get('getUnloadingPlace/:id')
   async getUnloadingPlace(
     @UserObj() user: UserEntity,
@@ -95,7 +95,7 @@ export class LoadsController {
     return await this.placesService.findById(load.receiverId);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Get('getLoadDetails/:id')
   async getLoadDetails(
     @UserObj() user: UserEntity,

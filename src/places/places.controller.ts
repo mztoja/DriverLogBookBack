@@ -1,11 +1,11 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { PlacesService } from './places.service';
-import { AuthGuard } from '@nestjs/passport';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
 import { PlaceCreateDto } from './dto/place.create.dto';
 import { UsersService } from '../users/users.service';
 import { PlaceEntity } from './place.entity';
+import { JwtAuthGuard } from '../guards/jwt.auth.guard';
 
 @Controller('places')
 export class PlacesController {
@@ -14,13 +14,13 @@ export class PlacesController {
     private readonly usersService: UsersService,
   ) {}
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Get('/')
   async getPlacesList(@UserObj() user: UserEntity): Promise<PlaceEntity[]> {
     return await this.placesService.getPlacesList(user.id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post('create')
   async create(
     @Body() body: PlaceCreateDto,
@@ -33,7 +33,7 @@ export class PlacesController {
     );
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Get('companyList')
   async getCompanyList(@UserObj() user: UserEntity): Promise<PlaceEntity[]> {
     return await this.placesService.getCompanyList(user.id);

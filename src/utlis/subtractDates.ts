@@ -5,4 +5,4 @@ export const subtractDates = (higherDate: string, lowerDate: string) => {
   const hours = Math.floor(diff / 3600000);
   const minutes = Math.floor((diff % 3600000) / 60000);
   return `${hours}:${minutes}`;
-}
+};

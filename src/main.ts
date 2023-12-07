@@ -29,4 +29,4 @@ async function bootstrap() {
   await app.listen(3001);
   console.log(`[bootstrap] server is running on port: `, config.origin);
 }
-bootstrap();
+bootstrap().catch((e) => console.log('[bootstrap] server error: ', e));

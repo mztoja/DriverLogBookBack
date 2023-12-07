@@ -8,7 +8,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { LogsService } from './logs.service';
-import { AuthGuard } from '@nestjs/passport';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
 import { LogCreateDto } from './dto/log.create.dto';
@@ -19,7 +18,8 @@ import { LogBorderDto } from './dto/log.border.dto';
 import { BordersService } from '../borders/borders.service';
 import { UsersService } from '../users/users.service';
 import { LoadsService } from '../loads/loads.service';
-import { LogDetachTrailerDto } from "./dto/log.detach-trailer.dto";
+import { LogDetachTrailerDto } from './dto/log.detach-trailer.dto';
+import { JwtAuthGuard } from '../guards/jwt.auth.guard';
 
 @Controller('logs')
 export class LogsController {
@@ -31,7 +31,7 @@ export class LogsController {
     private readonly loadsService: LoadsService,
   ) {}
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post('create')
   async create(
     @Body() data: LogCreateDto,
@@ -49,7 +49,7 @@ export class LogsController {
     );
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post('createBorderCross')
   async createBorderCross(
     @Body() data: LogBorderDto,
@@ -74,7 +74,7 @@ export class LogsController {
     );
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Get('/:page/:perPage/:search?')
   async get(
     @Param('page') page: string,
@@ -89,7 +89,7 @@ export class LogsController {
     return await this.logsService.get(user.id, page, perPage, search);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post('attachTrailer')
   async attachTrailer(
     @Body() data: LogCreateDto,
@@ -112,7 +112,7 @@ export class LogsController {
     );
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post('detachTrailer')
   async detachTrailer(
     @Body() data: LogDetachTrailerDto,
@@ -159,7 +159,7 @@ export class LogsController {
     );
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post('loadingArrival')
   async loadingArrival(
     @Body() data: LogCreateDto,
@@ -181,7 +181,7 @@ export class LogsController {
     );
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post('unloadingArrival')
   async unloadingArrival(
     @Body() data: LogCreateDto,

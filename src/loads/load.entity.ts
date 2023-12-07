@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { LoadInterface } from '../types';
-import { loadStatusEnum } from '../types/load/LoadEnums';
+import { loadStatusEnum } from '../types';
 
 @Entity({
   name: 'loads',

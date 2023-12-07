@@ -8,7 +8,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { DaysService } from './days.service';
-import { AuthGuard } from '@nestjs/passport';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
 import { DayCreateDto } from './dto/day.create.dto';
@@ -16,6 +15,7 @@ import { DayEntity } from './day.entity';
 import { ToursService } from '../tours/tours.service';
 import { DayFinishDto } from './dto/day.finish.dto';
 import { DayListResponse } from '../types/day/DayListResponse';
+import { JwtAuthGuard } from '../guards/jwt.auth.guard';
 
 @Controller('days')
 export class DaysController {
@@ -24,7 +24,7 @@ export class DaysController {
     private readonly toursService: ToursService,
   ) {}
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post('create')
   async create(
     @Body() data: DayCreateDto,
@@ -41,19 +41,19 @@ export class DaysController {
     return await this.daysService.create(data, user.id, activeRoute.id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Get('getActiveDay')
   async getActiveDay(@UserObj() user: UserEntity): Promise<DayEntity> {
     return await this.daysService.getActiveDay(user.id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Get('getLastDay')
   async getLastDay(@UserObj() user: UserEntity): Promise<DayEntity> {
     return await this.daysService.getLastDay(user.id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post('finish')
   async finish(
     @Body() data: DayFinishDto,
@@ -70,7 +70,7 @@ export class DaysController {
     return await this.daysService.finish(data, user.fuelConType, activeDay);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Get('/:page/:perPage/:search?')
   async get(
     @Param('page') page: string,
