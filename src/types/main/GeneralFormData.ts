@@ -24,4 +24,5 @@ export interface GeneralFormData {
   weight: string;
   reference: string;
   loadId: string;
+  payment: string;
 }

@@ -12,6 +12,7 @@ import { DaysModule } from './days/days.module';
 import { BordersModule } from './borders/borders.module';
 import { LoadsModule } from './loads/loads.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
     BordersModule,
     LoadsModule,
     VehiclesModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

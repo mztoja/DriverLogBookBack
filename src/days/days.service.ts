@@ -73,7 +73,7 @@ export class DaysService {
         logTypeEnum.days,
       );
 
-      let brakeTime = '00:00';
+      let breakTime = '00:00';
       if (data.cardInserted) {
         const lastDayWithCard = await this.dayRepository.findOne({
           where: {
@@ -90,7 +90,11 @@ export class DaysService {
           const lastLog = await this.logsService.find(
             lastDayWithCard.stopLogId,
           );
-          brakeTime = subtractDates(log.date, lastLog.date);
+          breakTime = subtractDates(log.date, lastLog.date);
+          await this.dayRepository.update(
+            { id: lastDayWithCard.id },
+            { breakTime },
+          );
         }
       }
 
@@ -103,7 +107,6 @@ export class DaysService {
           : dayCardStateEnum.notUsed,
         doubleCrew: data.doubleCrew,
         status: dayStatusEnum.started,
-        breakTime: brakeTime,
       });
     } catch {
       throw new InternalServerErrorException();
