@@ -1,4 +1,4 @@
-import { LogCreateDto } from '../../logs/dto/log.create.dto';
+import { LogCreateDto } from '../../logs/dto/log-create.dto';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class TourCreateDto extends LogCreateDto {

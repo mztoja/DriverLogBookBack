@@ -7,9 +7,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
 import { TourEntity } from './tour.entity';
 import { logTypeEnum, tourStatusEnum } from '../types';
-import { TourCreateDto } from './dto/tour.create.dto';
+import { TourCreateDto } from './dto/tour-create.dto';
 import { LogsService } from '../logs/logs.service';
-import { LogCreateDto } from '../logs/dto/log.create.dto';
+import { LogCreateDto } from '../logs/dto/log-create.dto';
 
 @Injectable()
 export class ToursService {

@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PlaceEntity } from './place.entity';
-import { PlaceCreateDto } from './dto/place.create.dto';
+import { PlaceCreateDto } from './dto/place-create.dto';
 import { placeTypeEnum } from '../types';
 
 @Injectable()

@@ -16,7 +16,7 @@ import { CheckPasswordPipe } from '../pipes/check-password.pipe';
 import { UserInterface } from '../types';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
-import { JwtAuthGuard } from '../guards/jwt.auth.guard';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {

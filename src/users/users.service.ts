@@ -6,11 +6,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from './user.entity';
-import { UserRegisterDto } from './dto/user.register.dto';
+import { UserRegisterDto } from './dto/user-register.dto';
 import { placeTypeEnum } from '../types';
 import { PlacesService } from '../places/places.service';
 import { hashPwd } from '../utlis/hash-pwd';
-import { UserUpdateDto } from './dto/user.update.dto';
+import { UserUpdateDto } from './dto/user-update.dto';
 
 @Injectable()
 export class UsersService {

@@ -2,10 +2,10 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { PlacesService } from './places.service';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
-import { PlaceCreateDto } from './dto/place.create.dto';
+import { PlaceCreateDto } from './dto/place-create.dto';
 import { UsersService } from '../users/users.service';
 import { PlaceEntity } from './place.entity';
-import { JwtAuthGuard } from '../guards/jwt.auth.guard';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @Controller('places')
 export class PlacesController {

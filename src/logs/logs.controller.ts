@@ -10,16 +10,19 @@ import {
 import { LogsService } from './logs.service';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
-import { LogCreateDto } from './dto/log.create.dto';
+import { LogCreateDto } from './dto/log-create.dto';
 import { ToursService } from '../tours/tours.service';
 import { LogEntity } from './log.entity';
 import { LogListResponse, logTypeEnum } from '../types';
-import { LogBorderDto } from './dto/log.border.dto';
+import { LogBorderDto } from './dto/log-border.dto';
 import { BordersService } from '../borders/borders.service';
 import { UsersService } from '../users/users.service';
 import { LoadsService } from '../loads/loads.service';
-import { LogDetachTrailerDto } from './dto/log.detach-trailer.dto';
-import { JwtAuthGuard } from '../guards/jwt.auth.guard';
+import { LogDetachTrailerDto } from './dto/log-detach-trailer.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { ActiveRouteGuard } from '../guards/active-route.guard';
+import { TourEntity } from '../tours/tour.entity';
+import { ActiveRouteObj } from '../decorators/active-route-obj.decorator';
 
 @Controller('logs')
 export class LogsController {
@@ -31,16 +34,13 @@ export class LogsController {
     private readonly loadsService: LoadsService,
   ) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveRouteGuard)
   @Post('create')
   async create(
     @Body() data: LogCreateDto,
     @UserObj() user: UserEntity,
+    @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<LogEntity> {
-    const activeRoute = await this.toursService.getActiveRoute(user.id);
-    if (!activeRoute) {
-      throw new BadRequestException('noActiveRoute');
-    }
     return await this.logsService.create(
       data,
       user.id,
@@ -49,16 +49,13 @@ export class LogsController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveRouteGuard)
   @Post('createBorderCross')
   async createBorderCross(
     @Body() data: LogBorderDto,
     @UserObj() user: UserEntity,
+    @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<LogEntity> {
-    const activeRoute = await this.toursService.getActiveRoute(user.id);
-    if (!activeRoute) {
-      throw new BadRequestException('noActiveRoute');
-    }
     if (user.country === data.country) {
       throw new BadRequestException('countryConflict');
     }
@@ -89,16 +86,13 @@ export class LogsController {
     return await this.logsService.get(user.id, page, perPage, search);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveRouteGuard)
   @Post('attachTrailer')
   async attachTrailer(
     @Body() data: LogCreateDto,
     @UserObj() user: UserEntity,
+    @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<LogEntity> {
-    const activeRoute = await this.toursService.getActiveRoute(user.id);
-    if (!activeRoute) {
-      throw new BadRequestException('noActiveRoute');
-    }
     if (activeRoute.trailer) {
       throw new BadRequestException('trailerExist');
     }
@@ -112,16 +106,13 @@ export class LogsController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveRouteGuard)
   @Post('detachTrailer')
   async detachTrailer(
     @Body() data: LogDetachTrailerDto,
     @UserObj() user: UserEntity,
+    @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<LogEntity> {
-    const activeRoute = await this.toursService.getActiveRoute(user.id);
-    if (!activeRoute) {
-      throw new BadRequestException('noActiveRoute');
-    }
     if (!activeRoute.trailer) {
       throw new BadRequestException('noTrailer');
     }
@@ -159,16 +150,13 @@ export class LogsController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveRouteGuard)
   @Post('loadingArrival')
   async loadingArrival(
     @Body() data: LogCreateDto,
     @UserObj() user: UserEntity,
+    @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<LogEntity> {
-    const activeRoute = await this.toursService.getActiveRoute(user.id);
-    if (!activeRoute) {
-      throw new BadRequestException('noActiveRoute');
-    }
     await this.usersService.markDepart(user.id, 0);
     if (data.placeId !== 0) {
       await this.usersService.markArrival(user.id, data.placeId);
@@ -181,16 +169,13 @@ export class LogsController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveRouteGuard)
   @Post('unloadingArrival')
   async unloadingArrival(
     @Body() data: LogCreateDto,
     @UserObj() user: UserEntity,
+    @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<LogEntity> {
-    const activeRoute = await this.toursService.getActiveRoute(user.id);
-    if (!activeRoute) {
-      throw new BadRequestException('noActiveRoute');
-    }
     return await this.logsService.create(
       data,
       user.id,

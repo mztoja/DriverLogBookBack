@@ -1,4 +1,4 @@
-import { LogCreateDto } from './log.create.dto';
+import { LogCreateDto } from './log-create.dto';
 import { Transform } from 'class-transformer';
 import { IsBoolean } from 'class-validator';
 

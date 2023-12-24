@@ -7,15 +7,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { LogsService } from '../logs/logs.service';
 import { DayEntity } from './day.entity';
-import { DayCreateDto } from './dto/day.create.dto';
+import { DayCreateDto } from './dto/day-create.dto';
 import {
   dayCardStateEnum,
   dayStatusEnum,
   logTypeEnum,
   userFuelContypeEnum,
 } from '../types';
-import { LogCreateDto } from '../logs/dto/log.create.dto';
-import { DayFinishDto } from './dto/day.finish.dto';
+import { LogCreateDto } from '../logs/dto/log-create.dto';
+import { DayFinishDto } from './dto/day-finish.dto';
 import { subtractDates } from '../utlis/subtractDates';
 import { PlaceEntity } from '../places/place.entity';
 import { LogEntity } from '../logs/log.entity';

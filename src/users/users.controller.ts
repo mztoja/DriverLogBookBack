@@ -9,14 +9,14 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { UserRegisterDto } from './dto/user.register.dto';
+import { UserRegisterDto } from './dto/user-register.dto';
 import { UserInterface } from '../types';
 import { CheckPasswordPipe } from '../pipes/check-password.pipe';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from './user.entity';
-import { MarkDepartDto } from './dto/mark.depart.dto';
-import { UserUpdateDto } from './dto/user.update.dto';
-import { JwtAuthGuard } from '../guards/jwt.auth.guard';
+import { UserMarkDepartDto } from './dto/user-mark-depart.dto';
+import { UserUpdateDto } from './dto/user-update.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @Controller('users')
 export class UsersController {
@@ -36,7 +36,10 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('markDepart')
-  async markDepart(@Body() body: MarkDepartDto, @UserObj() user: UserEntity) {
+  async markDepart(
+    @Body() body: UserMarkDepartDto,
+    @UserObj() user: UserEntity,
+  ) {
     return await this.usersService.markDepart(user.id, body.placeId);
   }
 

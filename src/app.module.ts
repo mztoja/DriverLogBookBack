@@ -13,6 +13,7 @@ import { BordersModule } from './borders/borders.module';
 import { LoadsModule } from './loads/loads.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { PaymentsModule } from './payments/payments.module';
+import { FinancesModule } from './finances/finances.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { PaymentsModule } from './payments/payments.module';
     LoadsModule,
     VehiclesModule,
     PaymentsModule,
+    FinancesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

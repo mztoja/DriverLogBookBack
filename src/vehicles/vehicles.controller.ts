@@ -3,7 +3,7 @@ import { VehiclesService } from './vehicles.service';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
 import { VehicleEntity } from './vehicle.entity';
-import { JwtAuthGuard } from '../guards/jwt.auth.guard';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @Controller('vehicles')
 export class VehiclesController {

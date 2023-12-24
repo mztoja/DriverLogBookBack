@@ -1,5 +1,5 @@
 import { IsBoolean, IsNumber, IsString, Min } from 'class-validator';
-import { LogCreateDto } from '../../logs/dto/log.create.dto';
+import { LogCreateDto } from '../../logs/dto/log-create.dto';
 import { Transform } from 'class-transformer';
 
 export class DayFinishDto extends LogCreateDto {

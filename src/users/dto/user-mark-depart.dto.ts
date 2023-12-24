@@ -1,6 +1,6 @@
 import { IsNumber } from 'class-validator';
 
-export class MarkDepartDto {
+export class UserMarkDepartDto {
   @IsNumber()
   placeId: number;
 }

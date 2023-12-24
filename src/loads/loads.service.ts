@@ -3,14 +3,14 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { LoadCreateDto } from './dto/load.create.dto';
+import { LoadCreateDto } from './dto/load-create.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LoadEntity } from './load.entity';
 import { LogsService } from '../logs/logs.service';
 import { LoadInterface, logTypeEnum, loadStatusEnum } from '../types';
 import { PlaceEntity } from '../places/place.entity';
-import { LoadUnloadDto } from './dto/load.unload.dto';
+import { LoadUnloadDto } from './dto/load-unload.dto';
 
 @Injectable()
 export class LoadsService {

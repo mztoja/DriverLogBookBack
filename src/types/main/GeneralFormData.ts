@@ -25,4 +25,11 @@ export interface GeneralFormData {
   reference: string;
   loadId: string;
   payment: string;
+  expenseQuantity: string;
+  expenseUnitPrice: string;
+  expenseItemDescription: string;
+  expenseAmount: string;
+  expenseCurrency: string;
+  expenseForeignAmount: string;
+  expenseForeignCurrency: string;
 }

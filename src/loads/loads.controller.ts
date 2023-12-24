@@ -13,14 +13,17 @@ import { LoadsService } from './loads.service';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
 import { LoadEntity } from './load.entity';
-import { LoadCreateDto } from './dto/load.create.dto';
+import { LoadCreateDto } from './dto/load-create.dto';
 import { ToursService } from '../tours/tours.service';
 import { LoadInterface, loadStatusEnum } from '../types';
 import { PlaceEntity } from '../places/place.entity';
 import { PlacesService } from '../places/places.service';
 import { UsersService } from '../users/users.service';
-import { LoadUnloadDto } from './dto/load.unload.dto';
-import { JwtAuthGuard } from '../guards/jwt.auth.guard';
+import { LoadUnloadDto } from './dto/load-unload.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { ActiveRouteGuard } from '../guards/active-route.guard';
+import { ActiveRouteObj } from '../decorators/active-route-obj.decorator';
+import { TourEntity } from '../tours/tour.entity';
 
 @Controller('loads')
 export class LoadsController {
@@ -31,30 +34,24 @@ export class LoadsController {
     private readonly usersService: UsersService,
   ) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveRouteGuard)
   @Post('create')
   async create(
     @Body() data: LoadCreateDto,
     @UserObj() user: UserEntity,
+    @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<LoadEntity> {
-    const activeRoute = await this.toursService.getActiveRoute(user.id);
-    if (!activeRoute) {
-      throw new BadRequestException('noActiveRoute');
-    }
     await this.usersService.markArrival(user.id, 0);
     return this.loadsService.create(user.id, data, activeRoute.id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ActiveRouteGuard)
   @Post('unload')
   async unload(
     @Body() data: LoadUnloadDto,
     @UserObj() user: UserEntity,
+    @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<LoadEntity> {
-    const activeRoute = await this.toursService.getActiveRoute(user.id);
-    if (!activeRoute) {
-      throw new BadRequestException('noActiveRoute');
-    }
     if (activeRoute.userId !== user.id) {
       throw new UnauthorizedException('Unauthorized');
     }

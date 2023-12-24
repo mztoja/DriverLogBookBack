@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { LogEntity } from './log.entity';
-import { LogCreateDto } from './dto/log.create.dto';
+import { LogCreateDto } from './dto/log-create.dto';
 import { LogListResponse, logTypeEnum } from '../types';
 import { UsersService } from '../users/users.service';
 import { PlaceEntity } from '../places/place.entity';

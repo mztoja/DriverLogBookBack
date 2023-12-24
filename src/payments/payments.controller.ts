@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
-import { JwtAuthGuard } from '../guards/jwt.auth.guard';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
 import { PaymentEntity } from './payment.entity';

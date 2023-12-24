@@ -9,8 +9,8 @@ import {
 import { ToursService } from './tours.service';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
-import { TourCreateDto } from './dto/tour.create.dto';
-import { JwtAuthGuard } from '../guards/jwt.auth.guard';
+import { TourCreateDto } from './dto/tour-create.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @Controller('tours')
 export class ToursController {
