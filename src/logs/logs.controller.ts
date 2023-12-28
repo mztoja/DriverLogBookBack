@@ -97,7 +97,10 @@ export class LogsController {
       throw new BadRequestException('trailerExist');
     }
     const trailer = data.action.split(': ')[1];
-    await this.toursService.changeTrailer(activeRoute.id, trailer);
+    await this.toursService.changeTrailer(
+      activeRoute.id,
+      trailer.replace(/\s/g, ''),
+    );
     return await this.logsService.create(
       data,
       user.id,
