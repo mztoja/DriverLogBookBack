@@ -53,7 +53,7 @@ export class ToursService {
       const tour = await this.tourRepository.save({
         userId,
         tourNr: previousRoute ? previousRoute.tourNr + 1 : 1,
-        truck: data.truck.replace(/\s/g, ''),
+        truck: data.truck,
         startLogId: log.id,
         fuelStateBefore: data.fuelStateBefore,
         status: tourStatusEnum.started,

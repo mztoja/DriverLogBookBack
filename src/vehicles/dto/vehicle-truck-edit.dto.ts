@@ -1,7 +1,5 @@
-import { vehicleTypeEnum } from '../../types';
 import {
   IsBoolean,
-  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsString,
@@ -9,9 +7,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-export class VehicleAddDto {
-  @IsEnum(vehicleTypeEnum)
-  type: number;
+export class VehicleTruckEditDto {
   @IsString()
   @IsNotEmpty({ message: 'addVehicleRegEmpty' })
   @Transform(({ value }) => value.replace(/\s/g, '').toUpperCase())

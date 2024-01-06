@@ -99,7 +99,7 @@ export class LogsController {
     const trailer = data.action.split(': ')[1];
     await this.toursService.changeTrailer(
       activeRoute.id,
-      trailer.replace(/\s/g, ''),
+      trailer.replace(/\s/g, '').toUpperCase(),
     );
     return await this.logsService.create(
       data,

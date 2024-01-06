@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository, UpdateResult } from 'typeorm';
 import { VehicleEntity } from './vehicle.entity';
 import { VehicleAddDto } from './dto/vehicle-add.dto';
 import { vehicleTypeEnum } from '../types';
+import { VehicleTrailerEditDto } from './dto/vehicle-trailer-edit.dto';
+import { VehicleTruckEditDto } from './dto/vehicle-truck-edit.dto';
 
 @Injectable()
 export class VehiclesService {
@@ -16,9 +18,21 @@ export class VehiclesService {
     registrationNr: string,
     userId: string,
     companyId: number,
+    skipId?: number,
   ): Promise<VehicleEntity> {
+    if (skipId) {
+      return this.vehicleRepository.findOne({
+        where: { registrationNr, userId, companyId, id: Not(skipId) },
+      });
+    }
     return this.vehicleRepository.findOne({
       where: { registrationNr, userId, companyId },
+    });
+  }
+
+  async findById(id: number, userId: string): Promise<VehicleEntity> {
+    return this.vehicleRepository.findOne({
+      where: { id, userId },
     });
   }
 
@@ -44,5 +58,59 @@ export class VehiclesService {
       service: data.type === vehicleTypeEnum.trailer ? null : data.service,
       notes: data.notes === '' ? null : data.notes,
     });
+  }
+
+  async getTrucksList(userId: string): Promise<VehicleEntity[]> {
+    return this.vehicleRepository.find({
+      where: { userId, type: vehicleTypeEnum.truck },
+      order: { registrationNr: 'ASC' },
+    });
+  }
+
+  async getTrailersList(userId: string): Promise<VehicleEntity[]> {
+    return this.vehicleRepository.find({
+      where: { userId, type: vehicleTypeEnum.trailer },
+      order: { registrationNr: 'ASC' },
+    });
+  }
+
+  async trailerEdit(
+    id: number,
+    data: VehicleTrailerEditDto,
+  ): Promise<UpdateResult> {
+    return await this.vehicleRepository.update(
+      { id },
+      {
+        registrationNr: data.registrationNr,
+        weight: data.weight,
+        year: data.year,
+        model: data.model,
+        techRev: data.techRev,
+        insurance: data.insurance,
+        notes: data.notes,
+      },
+    );
+  }
+
+  async truckEdit(
+    id: number,
+    data: VehicleTruckEditDto,
+  ): Promise<UpdateResult> {
+    return await this.vehicleRepository.update(
+      { id },
+      {
+        registrationNr: data.registrationNr,
+        isLoadable: data.isLoadable,
+        weight: data.weight,
+        year: data.year,
+        model: data.model,
+        fuel: data.fuel,
+        techRev: data.techRev,
+        insurance: data.insurance,
+        tacho: data.tacho,
+        service: data.service,
+        notes: data.notes,
+      },
+    );
   }
 }
