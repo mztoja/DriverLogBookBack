@@ -8,3 +8,4 @@ export * from './border';
 export * from './load';
 export * from './vehicles';
 export * from './finance';
+export * from './services';

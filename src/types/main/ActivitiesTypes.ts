@@ -13,4 +13,6 @@ export type ActivitiesTypes =
   | 'unloadingCompleted'
   | 'addExpense'
   | 'addFuelRefuel'
-  | 'addDefRefuel';
+  | 'addDefRefuel'
+  | 'addService'
+  | 'addLubrication';

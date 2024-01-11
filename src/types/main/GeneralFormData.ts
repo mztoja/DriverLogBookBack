@@ -32,4 +32,8 @@ export interface GeneralFormData {
   expenseCurrency: string;
   expenseForeignAmount: string;
   expenseForeignCurrency: string;
+  serviceVehicleId: string;
+  serviceType: string;
+  serviceEntry: string;
+  serviceVehicleType: string;
 }

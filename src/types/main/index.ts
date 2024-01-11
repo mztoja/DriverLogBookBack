@@ -9,3 +9,4 @@ export * from './AddLoadingData';
 export * from './UnloadingData';
 export * from './DetachTrailerData';
 export * from './AddExpenseData';
+export * from './AddServiceData';

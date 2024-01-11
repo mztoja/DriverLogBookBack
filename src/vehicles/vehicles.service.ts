@@ -87,7 +87,7 @@ export class VehiclesService {
         model: data.model,
         techRev: data.techRev,
         insurance: data.insurance,
-        notes: data.notes,
+        notes: data.notes === '' ? null : data.notes,
       },
     );
   }
@@ -109,7 +109,7 @@ export class VehiclesService {
         insurance: data.insurance,
         tacho: data.tacho,
         service: data.service,
-        notes: data.notes,
+        notes: data.notes === '' ? null : data.notes,
       },
     );
   }
