@@ -15,7 +15,7 @@ export class FinanceEntity implements FinanceInterface {
   logId: number;
   @Column({ type: 'varchar', length: 100 })
   itemDescription: string;
-  @Column({ type: 'decimal', precision: 4, scale: 2 })
+  @Column({ type: 'decimal', precision: 6, scale: 2 })
   quantity: number;
   @Column({ type: 'decimal', precision: 9, scale: 2 })
   amount: number;

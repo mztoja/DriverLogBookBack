@@ -62,11 +62,7 @@ export class LogsService {
   }
 
   async find(id: number): Promise<LogEntity> {
-    try {
-      return await this.logRepository.findOne({ where: { id } });
-    } catch {
-      throw new InternalServerErrorException();
-    }
+    return await this.logRepository.findOne({ where: { id } });
   }
 
   async get(

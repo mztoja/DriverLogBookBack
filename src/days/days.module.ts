@@ -14,5 +14,6 @@ import { ToursModule } from '../tours/tours.module';
   ],
   controllers: [DaysController],
   providers: [DaysService],
+  exports: [DaysService],
 })
 export class DaysModule {}

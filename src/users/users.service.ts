@@ -110,25 +110,26 @@ export class UsersService {
     }
   }
 
-  async update(userId: string, user: UserUpdateDto): Promise<UserEntity> {
-    try {
-      await this.userRepository.update(
-        { id: userId },
-        {
-          firstName: user.firstName,
-          lastName: user.lastName,
-          lang: user.lang,
-          companyId: user.companyId,
-          customer: user.customer,
-          bidType: user.bidType,
-          bid: user.bid,
-          currency: user.currency,
-          fuelConType: user.fuelConsumptionType,
-        },
-      );
-      return this.userRepository.findOne({ where: { id: userId } });
-    } catch {
-      throw new InternalServerErrorException();
-    }
+  async update(
+    userId: string,
+    user: UserUpdateDto,
+    noActiveRoute: boolean,
+    pervCurrency: string,
+  ): Promise<UserEntity> {
+    await this.userRepository.update(
+      { id: userId },
+      {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        lang: user.lang,
+        companyId: user.companyId,
+        customer: user.customer,
+        bidType: user.bidType,
+        bid: user.bid,
+        fuelConType: user.fuelConsumptionType,
+        currency: noActiveRoute ? user.currency : pervCurrency,
+      },
+    );
+    return this.userRepository.findOne({ where: { id: userId } });
   }
 }

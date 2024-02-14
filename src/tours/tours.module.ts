@@ -4,11 +4,17 @@ import { ToursController } from './tours.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TourEntity } from './tour.entity';
 import { LogsModule } from '../logs/logs.module';
+import { DaysModule } from '../days/days.module';
+import { FinancesModule } from '../finances/finances.module';
+import { LoadsModule } from '../loads/loads.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([TourEntity]),
     forwardRef(() => LogsModule),
+    forwardRef(() => DaysModule),
+    forwardRef(() => FinancesModule),
+    forwardRef(() => LoadsModule),
   ],
   providers: [ToursService],
   controllers: [ToursController],

@@ -14,5 +14,6 @@ import { ToursModule } from '../tours/tours.module';
   ],
   providers: [FinancesService],
   controllers: [FinancesController],
+  exports: [FinancesService],
 })
 export class FinancesModule {}

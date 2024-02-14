@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Post,
   UseGuards,
@@ -69,6 +70,19 @@ export class LogsController {
       activeRoute.id,
       logTypeEnum.crossBorder,
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/getById/:id')
+  async getById(
+    @Param('id') id: string,
+    @UserObj() user: UserEntity,
+  ): Promise<LogEntity> {
+    const log = await this.logsService.find(Number(id));
+    if (!log || log.userId !== user.id) {
+      throw new NotFoundException();
+    }
+    return log;
   }
 
   @UseGuards(JwtAuthGuard)

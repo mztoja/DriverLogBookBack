@@ -4,8 +4,10 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   UseGuards,
+  ValidationPipe,
 } from '@nestjs/common';
 import { DaysService } from './days.service';
 import { UserObj } from '../decorators/user-obj.decorator';
@@ -18,6 +20,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ActiveRouteGuard } from '../guards/active-route.guard';
 import { ActiveRouteObj } from '../decorators/active-route-obj.decorator';
 import { TourEntity } from '../tours/tour.entity';
+import { DayBurnedFuelRes } from '../types/day/DayBurnedFuelRes';
 
 @Controller('days')
 export class DaysController {
@@ -47,6 +50,20 @@ export class DaysController {
   @Get('getLastDay')
   async getLastDay(@UserObj() user: UserEntity): Promise<DayEntity> {
     return await this.daysService.getLastDay(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('burnedFuelByTour/:tourId')
+  async getBurnedFuelByTour(
+    @Param(
+      'tourId',
+      new ParseIntPipe(),
+      new ValidationPipe({ transform: true }),
+    )
+    tourId: number,
+    @UserObj() user: UserEntity,
+  ): Promise<DayBurnedFuelRes> {
+    return await this.daysService.getBurnedFuelByTour(user.id, tourId);
   }
 
   @UseGuards(JwtAuthGuard, ActiveRouteGuard)

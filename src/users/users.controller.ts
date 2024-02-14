@@ -17,10 +17,14 @@ import { UserEntity } from './user.entity';
 import { UserMarkDepartDto } from './dto/user-mark-depart.dto';
 import { UserUpdateDto } from './dto/user-update.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { ToursService } from '../tours/tours.service';
 
 @Controller('users')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly toursService: ToursService,
+  ) {}
 
   @Post('register')
   @UsePipes(new ValidationPipe(), new CheckPasswordPipe())
@@ -49,6 +53,13 @@ export class UsersController {
     @UserObj() user: UserEntity,
     @Body() body: UserUpdateDto,
   ): Promise<UserEntity> {
-    return await this.usersService.update(user.id, body);
+    const activeRoute = await this.toursService.getActiveRoute(user.id);
+    const noActiveRoute = activeRoute === null || activeRoute === undefined;
+    return await this.usersService.update(
+      user.id,
+      body,
+      noActiveRoute,
+      user.currency,
+    );
   }
 }

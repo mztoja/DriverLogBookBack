@@ -11,6 +11,7 @@ import { LogsService } from '../logs/logs.service';
 import { LoadInterface, logTypeEnum, loadStatusEnum } from '../types';
 import { PlaceEntity } from '../places/place.entity';
 import { LoadUnloadDto } from './dto/load-unload.dto';
+import { LogEntity } from '../logs/log.entity';
 
 @Injectable()
 export class LoadsService {
@@ -61,6 +62,44 @@ export class LoadsService {
     } catch {
       throw new InternalServerErrorException();
     }
+  }
+
+  async getLoadsByTour(
+    userId: string,
+    tourId: number,
+  ): Promise<LoadInterface[]> {
+    const query = await this.loadRepository
+      .createQueryBuilder('load')
+      .where('load.userId = :userId AND load.tourId = :tourId', {
+        userId,
+        tourId,
+      })
+      .leftJoinAndMapOne(
+        'load.loadingLogData',
+        LogEntity,
+        'loadingLog',
+        'load.loadingLogId = loadingLog.id',
+      )
+      .leftJoinAndMapOne(
+        'load.unloadingLogData',
+        LogEntity,
+        'unloadingLog',
+        'load.unloadingLogId = unloadingLog.id',
+      )
+      .leftJoinAndMapOne(
+        'load.senderData',
+        PlaceEntity,
+        'senderLog',
+        'load.senderId = senderLog.id',
+      )
+      .leftJoinAndMapOne(
+        'load.receiverData',
+        PlaceEntity,
+        'receiverLog',
+        'load.receiverId = receiverLog.id',
+      )
+      .orderBy('load.id', 'DESC');
+    return await query.getMany();
   }
 
   async create(
