@@ -1,9 +1,10 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, UpdateResult } from 'typeorm';
 import { PlaceEntity } from './place.entity';
 import { PlaceCreateDto } from './dto/place-create.dto';
 import { placeTypeEnum } from '../types';
+import { PlaceEditDto } from './dto/place-edit.dto';
 
 @Injectable()
 export class PlacesService {
@@ -68,5 +69,23 @@ export class PlacesService {
     } catch {
       throw new InternalServerErrorException();
     }
+  }
+
+  async edit(id: number, data: PlaceEditDto): Promise<UpdateResult> {
+    return await this.placeRepository.update(
+      { id },
+      {
+        type: data.type,
+        name: data.name,
+        street: data.street,
+        code: data.code,
+        city: data.city,
+        country: data.country,
+        isFavorite: data.isFavorite,
+        lat: data.lat,
+        lon: data.lon,
+        description: data.description !== '' ? data.description : null,
+      },
+    );
   }
 }

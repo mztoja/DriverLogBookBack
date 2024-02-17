@@ -14,12 +14,14 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { TourFinishDto } from './dto/tour-finish.dto';
 import { DaysService } from '../days/days.service';
 import { TourEntity } from './tour.entity';
+import { LoadsService } from '../loads/loads.service';
 
 @Controller('tours')
 export class ToursController {
   constructor(
     private readonly toursService: ToursService,
     private readonly daysService: DaysService,
+    private readonly loadsService: LoadsService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -45,6 +47,10 @@ export class ToursController {
     const activeRoute = await this.toursService.getActiveRoute(user.id);
     if (!activeRoute) {
       throw new BadRequestException('noActiveRoute');
+    }
+    const activeLoads = await this.loadsService.getNotUnloadedLoads(user.id);
+    if (activeLoads.length !== 0) {
+      throw new BadRequestException('youHaveUnloadedLoads');
     }
     return await this.toursService.finish(data, user, activeRoute);
   }
