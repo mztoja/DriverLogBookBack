@@ -18,6 +18,7 @@ import { ActiveRouteGuard } from '../guards/active-route.guard';
 import { ActiveRouteObj } from '../decorators/active-route-obj.decorator';
 import { TourEntity } from '../tours/tour.entity';
 import { FinanceRefuelValueRes } from '../types/finance/FinanceRefuelValueRes';
+import { FinanceListResponse } from '../types/finance/FinanceListResponse';
 
 @Controller('finances')
 export class FinancesController {
@@ -46,5 +47,15 @@ export class FinancesController {
     @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<FinanceEntity> {
     return await this.financesService.create(user.id, data, activeRoute.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/:page/:perPage/:search?')
+  async get(
+    @Param('page') page: string,
+    @Param('perPage') perPage: string,
+    @UserObj() user: UserEntity,
+  ): Promise<FinanceListResponse> {
+    return await this.financesService.get(user.id, page, perPage);
   }
 }

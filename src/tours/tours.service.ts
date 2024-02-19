@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
 import { TourEntity } from './tour.entity';
-import { logTypeEnum, tourStatusEnum } from '../types';
+import { logTypeEnum, TourNumbersInterface, tourStatusEnum } from '../types';
 import { TourCreateDto } from './dto/tour-create.dto';
 import { LogsService } from '../logs/logs.service';
 import { LogCreateDto } from '../logs/dto/log-create.dto';
@@ -43,6 +43,24 @@ export class ToursService {
       where: { userId, status: Not(tourStatusEnum.started) },
       order: { id: 'DESC' },
     });
+  }
+  async getRouteNumbers(tourIds: number[]): Promise<TourNumbersInterface[]> {
+    const result: TourNumbersInterface[] = [];
+    await Promise.all(
+      tourIds.map(async (number) => {
+        const route = await this.tourRepository.findOne({
+          where: { id: number },
+        });
+
+        if (route) {
+          result.push({
+            tourId: number,
+            tourNr: route.tourNr,
+          });
+        }
+      }),
+    );
+    return result;
   }
   async create(data: TourCreateDto, userId: string): Promise<TourEntity> {
     try {

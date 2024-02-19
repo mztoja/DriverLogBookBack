@@ -8,6 +8,7 @@ import { LogCreateDto } from '../logs/dto/log-create.dto';
 import { ExpenseEnum, FinanceInterface, logTypeEnum } from '../types';
 import { LogEntity } from '../logs/log.entity';
 import { FinanceRefuelValueRes } from '../types/finance/FinanceRefuelValueRes';
+import { FinanceListResponse } from '../types/finance/FinanceListResponse';
 
 @Injectable()
 export class FinancesService {
@@ -98,5 +99,28 @@ export class FinancesService {
   async getOutgoingsByTour(userId: string, tourId: number): Promise<number> {
     const finances = await this.getByTourId(userId, tourId);
     return finances.reduce((sum, finance) => sum + Number(finance.amount), 0);
+  }
+
+  async get(
+    userId: string,
+    page: string,
+    perPage: string,
+  ): Promise<FinanceListResponse> {
+    const query = await this.financeRepository
+      .createQueryBuilder('finance')
+      .where('finance.userId = :userId', {
+        userId,
+      })
+      .leftJoinAndMapOne(
+        'finance.logData',
+        LogEntity,
+        'logId',
+        'finance.logId = logId.id',
+      )
+      .orderBy('finance.id', 'DESC')
+      .skip((Number(page) - 1) * Number(perPage))
+      .take(Number(perPage));
+    const [items, totalItems] = await query.getManyAndCount();
+    return { items, totalItems };
   }
 }

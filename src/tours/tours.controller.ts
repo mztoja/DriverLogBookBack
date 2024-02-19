@@ -15,6 +15,8 @@ import { TourFinishDto } from './dto/tour-finish.dto';
 import { DaysService } from '../days/days.service';
 import { TourEntity } from './tour.entity';
 import { LoadsService } from '../loads/loads.service';
+import { TourGetNumbersDto } from './dto/tour-get-numbers.dto';
+import { TourNumbersInterface } from '../types';
 
 @Controller('tours')
 export class ToursController {
@@ -59,5 +61,13 @@ export class ToursController {
   @Get('getActiveRoute')
   async getActiveRoute(@UserObj() user: UserEntity) {
     return await this.toursService.getActiveRoute(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('getRouteNumbers')
+  async getRouteNumbers(
+    @Body() data: TourGetNumbersDto,
+  ): Promise<TourNumbersInterface[]> {
+    return await this.toursService.getRouteNumbers(data.tourIds);
   }
 }
