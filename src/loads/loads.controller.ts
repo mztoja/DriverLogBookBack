@@ -15,7 +15,7 @@ import { UserEntity } from '../users/user.entity';
 import { LoadEntity } from './load.entity';
 import { LoadCreateDto } from './dto/load-create.dto';
 import { ToursService } from '../tours/tours.service';
-import { LoadInterface, loadStatusEnum } from '../types';
+import { LoadInterface, LoadListResponse, loadStatusEnum } from '../types';
 import { PlaceEntity } from '../places/place.entity';
 import { PlacesService } from '../places/places.service';
 import { UsersService } from '../users/users.service';
@@ -103,5 +103,15 @@ export class LoadsController {
       throw new NotFoundException();
     }
     return load;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/:page/:perPage/:search?')
+  async get(
+    @Param('page') page: string,
+    @Param('perPage') perPage: string,
+    @UserObj() user: UserEntity,
+  ): Promise<LoadListResponse> {
+    return await this.loadsService.get(user.id, page, perPage);
   }
 }

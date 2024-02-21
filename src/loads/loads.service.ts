@@ -8,7 +8,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LoadEntity } from './load.entity';
 import { LogsService } from '../logs/logs.service';
-import { LoadInterface, logTypeEnum, loadStatusEnum } from '../types';
+import {
+  LoadInterface,
+  logTypeEnum,
+  loadStatusEnum,
+  LoadListResponse,
+} from '../types';
 import { PlaceEntity } from '../places/place.entity';
 import { LoadUnloadDto } from './dto/load-unload.dto';
 import { LogEntity } from '../logs/log.entity';
@@ -81,10 +86,22 @@ export class LoadsService {
         'load.loadingLogId = loadingLog.id',
       )
       .leftJoinAndMapOne(
+        'loadingLog.placeData',
+        PlaceEntity,
+        'loadingPlace',
+        'loadingLog.placeId = loadingPlace.id',
+      )
+      .leftJoinAndMapOne(
         'load.unloadingLogData',
         LogEntity,
         'unloadingLog',
         'load.unloadingLogId = unloadingLog.id',
+      )
+      .leftJoinAndMapOne(
+        'unloadingLog.placeData',
+        PlaceEntity,
+        'unloadingPlace',
+        'unloadingLog.placeId = unloadingPlace.id',
       )
       .leftJoinAndMapOne(
         'load.senderData',
@@ -186,5 +203,58 @@ export class LoadsService {
     } catch {
       throw new InternalServerErrorException();
     }
+  }
+
+  async get(
+    userId: string,
+    page: string,
+    perPage: string,
+  ): Promise<LoadListResponse> {
+    const query = await this.loadRepository
+      .createQueryBuilder('load')
+      .where('load.userId = :userId', {
+        userId,
+      })
+      .leftJoinAndMapOne(
+        'load.loadingLogData',
+        LogEntity,
+        'loadingLog',
+        'load.loadingLogId = loadingLog.id',
+      )
+      .leftJoinAndMapOne(
+        'loadingLog.placeData',
+        PlaceEntity,
+        'loadingPlace',
+        'loadingLog.placeId = loadingPlace.id',
+      )
+      .leftJoinAndMapOne(
+        'load.unloadingLogData',
+        LogEntity,
+        'unloadingLog',
+        'load.unloadingLogId = unloadingLog.id',
+      )
+      .leftJoinAndMapOne(
+        'unloadingLog.placeData',
+        PlaceEntity,
+        'unloadingPlace',
+        'unloadingLog.placeId = unloadingPlace.id',
+      )
+      .leftJoinAndMapOne(
+        'load.senderData',
+        PlaceEntity,
+        'senderLog',
+        'load.senderId = senderLog.id',
+      )
+      .leftJoinAndMapOne(
+        'load.receiverData',
+        PlaceEntity,
+        'receiverLog',
+        'load.receiverId = receiverLog.id',
+      )
+      .orderBy('load.id', 'DESC')
+      .skip((Number(page) - 1) * Number(perPage))
+      .take(Number(perPage));
+    const [items, totalItems] = await query.getManyAndCount();
+    return { items, totalItems };
   }
 }
