@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { LogEntity } from './log.entity';
 import { LogCreateDto } from './dto/log-create.dto';
-import { LogListResponse, logTypeEnum } from '../types';
+import { LogInterface, LogListResponse, logTypeEnum } from '../types';
 import { UsersService } from '../users/users.service';
 import { PlaceEntity } from '../places/place.entity';
 
@@ -71,33 +71,46 @@ export class LogsService {
     perPage: string,
     search: string | null,
   ): Promise<LogListResponse> {
-    try {
-      const query = await this.logRepository
-        .createQueryBuilder('log')
-        .where('log.userId = :userId', { userId })
-        .leftJoinAndMapOne(
-          'log.placeData',
-          PlaceEntity,
-          'place',
-          'log.placeId = place.id',
-        )
-        .orderBy('log.id', 'DESC')
-        .skip((Number(page) - 1) * Number(perPage))
-        .take(Number(perPage));
-      if (search) {
-        query.andWhere(
-          new Brackets((qb) => {
-            qb.where('log.action LIKE :search', {
-              search: `%${search}%`,
-            }).orWhere('log.date LIKE :search', { search: `%${search}%` });
-          }),
-        );
-      }
-      //const totalPages = Math.ceil(totalItems / Number(perPage));
-      const [items, totalItems] = await query.getManyAndCount();
-      return { items, totalItems };
-    } catch {
-      throw new InternalServerErrorException();
+    const query = await this.logRepository
+      .createQueryBuilder('log')
+      .where('log.userId = :userId', { userId })
+      .leftJoinAndMapOne(
+        'log.placeData',
+        PlaceEntity,
+        'place',
+        'log.placeId = place.id',
+      )
+      .orderBy('log.id', 'DESC')
+      .skip((Number(page) - 1) * Number(perPage))
+      .take(Number(perPage));
+    if (search) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('log.action LIKE :search', {
+            search: `%${search}%`,
+          }).orWhere('log.date LIKE :search', { search: `%${search}%` });
+        }),
+      );
     }
+    //const totalPages = Math.ceil(totalItems / Number(perPage));
+    const [items, totalItems] = await query.getManyAndCount();
+    return { items, totalItems };
+  }
+
+  async getByTourId(userId: string, tourId: number): Promise<LogInterface[]> {
+    return await this.logRepository
+      .createQueryBuilder('log')
+      .where('log.userId = :userId AND log.tourId = :tourId', {
+        userId,
+        tourId,
+      })
+      .leftJoinAndMapOne(
+        'log.placeData',
+        PlaceEntity,
+        'place',
+        'log.placeId = place.id',
+      )
+      .orderBy('log.id', 'DESC')
+      .getMany();
   }
 }

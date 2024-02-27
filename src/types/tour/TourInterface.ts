@@ -1,4 +1,5 @@
 import { tourStatusEnum } from './TourEnums';
+import { LogInterface } from '../log';
 
 export interface TourInterface {
   id: number;
@@ -8,7 +9,9 @@ export interface TourInterface {
   truck: string;
   trailer: string | null;
   startLogId: number;
+  startLogData?: LogInterface;
   stopLogId: number;
+  stopLogData?: LogInterface;
   driveTime: string;
   workTime: string;
   distance: number;

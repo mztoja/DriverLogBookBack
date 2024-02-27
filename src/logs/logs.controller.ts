@@ -14,7 +14,7 @@ import { UserEntity } from '../users/user.entity';
 import { LogCreateDto } from './dto/log-create.dto';
 import { ToursService } from '../tours/tours.service';
 import { LogEntity } from './log.entity';
-import { LogListResponse, logTypeEnum } from '../types';
+import { LogInterface, LogListResponse, logTypeEnum } from '../types';
 import { LogBorderDto } from './dto/log-border.dto';
 import { BordersService } from '../borders/borders.service';
 import { UsersService } from '../users/users.service';
@@ -86,7 +86,7 @@ export class LogsController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('/:page/:perPage/:search?')
+  @Get('get/:page/:perPage/:search?')
   async get(
     @Param('page') page: string,
     @Param('perPage') perPage: string,
@@ -98,6 +98,15 @@ export class LogsController {
       search = null;
     }
     return await this.logsService.get(user.id, page, perPage, search);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('getByTourId/:tourId')
+  async getByTourId(
+    @Param('tourId') tourId: string,
+    @UserObj() user: UserEntity,
+  ): Promise<LogInterface[]> {
+    return await this.logsService.getByTourId(user.id, Number(tourId));
   }
 
   @UseGuards(JwtAuthGuard, ActiveRouteGuard)

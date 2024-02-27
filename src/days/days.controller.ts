@@ -21,6 +21,7 @@ import { ActiveRouteGuard } from '../guards/active-route.guard';
 import { ActiveRouteObj } from '../decorators/active-route-obj.decorator';
 import { TourEntity } from '../tours/tour.entity';
 import { DayBurnedFuelRes } from '../types/day/DayBurnedFuelRes';
+import { DayInterface } from '../types';
 
 @Controller('days')
 export class DaysController {
@@ -80,12 +81,21 @@ export class DaysController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('/:page/:perPage/:search?')
+  @Get('get/:page/:perPage/:search?')
   async get(
     @Param('page') page: string,
     @Param('perPage') perPage: string,
     @UserObj() user: UserEntity,
   ): Promise<DayListResponse> {
     return await this.daysService.get(user.id, page, perPage);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('getByTourId/:tourId')
+  async getByTourId(
+    @Param('tourId') tourId: string,
+    @UserObj() user: UserEntity,
+  ): Promise<DayInterface[]> {
+    return await this.daysService.getByTourId(user.id, Number(tourId));
   }
 }

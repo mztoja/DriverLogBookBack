@@ -7,10 +7,12 @@ import { LogsModule } from '../logs/logs.module';
 import { DaysModule } from '../days/days.module';
 import { FinancesModule } from '../finances/finances.module';
 import { LoadsModule } from '../loads/loads.module';
+import { TourMEntity } from './tourM.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([TourEntity]),
+    TypeOrmModule.forFeature([TourMEntity]),
     forwardRef(() => LogsModule),
     forwardRef(() => DaysModule),
     forwardRef(() => FinancesModule),

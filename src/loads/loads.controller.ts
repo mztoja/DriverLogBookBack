@@ -106,12 +106,21 @@ export class LoadsController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('/:page/:perPage/:search?')
+  @Get('get/:page/:perPage/:search?')
   async get(
     @Param('page') page: string,
     @Param('perPage') perPage: string,
     @UserObj() user: UserEntity,
   ): Promise<LoadListResponse> {
     return await this.loadsService.get(user.id, page, perPage);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('getByTourId/:tourId')
+  async getByTourId(
+    @Param('tourId') tourId: string,
+    @UserObj() user: UserEntity,
+  ): Promise<LoadInterface[]> {
+    return await this.loadsService.getLoadsByTour(user.id, Number(tourId));
   }
 }
