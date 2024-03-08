@@ -1,19 +1,10 @@
-import {
-  Inject,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { LoadCreateDto } from './dto/load-create.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LoadEntity } from './load.entity';
 import { LogsService } from '../logs/logs.service';
-import {
-  LoadInterface,
-  logTypeEnum,
-  loadStatusEnum,
-  LoadListResponse,
-} from '../types';
+import { LoadInterface, logTypeEnum, loadStatusEnum, LoadListResponse } from '../types';
 import { PlaceEntity } from '../places/place.entity';
 import { LoadUnloadDto } from './dto/load-unload.dto';
 import { LogEntity } from '../logs/log.entity';
@@ -49,81 +40,52 @@ export class LoadsService {
   }
 
   async getNotUnloadedLoads(userId: string): Promise<LoadInterface[]> {
-    try {
-      return await this.loadRepository
-        .createQueryBuilder('load')
-        .where('load.userId = :userId AND load.status = :status', {
-          userId,
-          status: loadStatusEnum.notUnloaded,
-        })
-        .leftJoinAndMapOne(
-          'load.receiverData',
-          PlaceEntity,
-          'receiver',
-          'load.receiverId = receiver.id',
-        )
-        .orderBy('load.id', 'DESC')
-        .getMany();
-    } catch {
-      throw new InternalServerErrorException();
-    }
+    return await this.loadRepository
+      .createQueryBuilder('load')
+      .where('load.userId = :userId AND load.status = :status', {
+        userId,
+        status: loadStatusEnum.notUnloaded,
+      })
+      .leftJoinAndMapOne('load.receiverData', PlaceEntity, 'receiver', 'load.receiverId = receiver.id')
+      .orderBy('load.id', 'DESC')
+      .getMany();
   }
 
-  async getLoadsByTour(
-    userId: string,
-    tourId: number,
-  ): Promise<LoadInterface[]> {
+  async getNotUnloadedLoadsMass(userId: string): Promise<number> {
+    const result = await this.loadRepository
+      .createQueryBuilder('load')
+      .select('SUM(load.weight)', 'sum')
+      .where('load.userId = :userId AND load.status = :status', {
+        userId,
+        status: loadStatusEnum.notUnloaded,
+      })
+      .getRawOne();
+    return result ? result.sum : 0;
+  }
+
+  async getLoadsByTour(userId: string, tourId: number): Promise<LoadInterface[]> {
     const query = await this.loadRepository
       .createQueryBuilder('load')
       .where('load.userId = :userId AND load.tourId = :tourId', {
         userId,
         tourId,
       })
-      .leftJoinAndMapOne(
-        'load.loadingLogData',
-        LogEntity,
-        'loadingLog',
-        'load.loadingLogId = loadingLog.id',
-      )
-      .leftJoinAndMapOne(
-        'loadingLog.placeData',
-        PlaceEntity,
-        'loadingPlace',
-        'loadingLog.placeId = loadingPlace.id',
-      )
-      .leftJoinAndMapOne(
-        'load.unloadingLogData',
-        LogEntity,
-        'unloadingLog',
-        'load.unloadingLogId = unloadingLog.id',
-      )
+      .leftJoinAndMapOne('load.loadingLogData', LogEntity, 'loadingLog', 'load.loadingLogId = loadingLog.id')
+      .leftJoinAndMapOne('loadingLog.placeData', PlaceEntity, 'loadingPlace', 'loadingLog.placeId = loadingPlace.id')
+      .leftJoinAndMapOne('load.unloadingLogData', LogEntity, 'unloadingLog', 'load.unloadingLogId = unloadingLog.id')
       .leftJoinAndMapOne(
         'unloadingLog.placeData',
         PlaceEntity,
         'unloadingPlace',
         'unloadingLog.placeId = unloadingPlace.id',
       )
-      .leftJoinAndMapOne(
-        'load.senderData',
-        PlaceEntity,
-        'senderLog',
-        'load.senderId = senderLog.id',
-      )
-      .leftJoinAndMapOne(
-        'load.receiverData',
-        PlaceEntity,
-        'receiverLog',
-        'load.receiverId = receiverLog.id',
-      )
+      .leftJoinAndMapOne('load.senderData', PlaceEntity, 'senderLog', 'load.senderId = senderLog.id')
+      .leftJoinAndMapOne('load.receiverData', PlaceEntity, 'receiverLog', 'load.receiverId = receiverLog.id')
       .orderBy('load.id', 'DESC');
     return await query.getMany();
   }
 
-  async create(
-    userId: string,
-    data: LoadCreateDto,
-    tourId: number,
-  ): Promise<LoadEntity> {
+  async create(userId: string, data: LoadCreateDto, tourId: number): Promise<LoadEntity> {
     try {
       const log = await this.logsService.create(
         {
@@ -144,8 +106,6 @@ export class LoadsService {
       if (lastLoad) {
         loadNr = lastLoad.loadNr + 1;
       }
-      const newAction = log.action.replace(/\./, `. ${loadNr} `);
-      await this.logsService.setAction(log.id, newAction);
       return await this.loadRepository.save({
         userId,
         tourId,
@@ -167,15 +127,9 @@ export class LoadsService {
     }
   }
 
-  async unload(
-    data: LoadUnloadDto,
-    load: LoadEntity,
-    tourId: number,
-    userId: string,
-  ): Promise<LoadEntity> {
+  async unload(data: LoadUnloadDto, load: LoadEntity, tourId: number, userId: string): Promise<LoadEntity> {
     try {
       const startLog = await this.logsService.find(load.loadingLogId);
-      const action = data.action.replace('.value.', `${load.loadNr}`);
       const stopLog = await this.logsService.create(
         {
           date: data.date,
@@ -183,7 +137,7 @@ export class LoadsService {
           placeId: data.isPlaceAsReceiver ? load.receiverId : data.placeId,
           country: data.country,
           odometer: data.odometer,
-          action: action,
+          action: data.action,
           notes: data.notes,
         },
         userId,
@@ -205,52 +159,23 @@ export class LoadsService {
     }
   }
 
-  async get(
-    userId: string,
-    page: string,
-    perPage: string,
-  ): Promise<LoadListResponse> {
+  async get(userId: string, page: string, perPage: string): Promise<LoadListResponse> {
     const query = await this.loadRepository
       .createQueryBuilder('load')
       .where('load.userId = :userId', {
         userId,
       })
-      .leftJoinAndMapOne(
-        'load.loadingLogData',
-        LogEntity,
-        'loadingLog',
-        'load.loadingLogId = loadingLog.id',
-      )
-      .leftJoinAndMapOne(
-        'loadingLog.placeData',
-        PlaceEntity,
-        'loadingPlace',
-        'loadingLog.placeId = loadingPlace.id',
-      )
-      .leftJoinAndMapOne(
-        'load.unloadingLogData',
-        LogEntity,
-        'unloadingLog',
-        'load.unloadingLogId = unloadingLog.id',
-      )
+      .leftJoinAndMapOne('load.loadingLogData', LogEntity, 'loadingLog', 'load.loadingLogId = loadingLog.id')
+      .leftJoinAndMapOne('loadingLog.placeData', PlaceEntity, 'loadingPlace', 'loadingLog.placeId = loadingPlace.id')
+      .leftJoinAndMapOne('load.unloadingLogData', LogEntity, 'unloadingLog', 'load.unloadingLogId = unloadingLog.id')
       .leftJoinAndMapOne(
         'unloadingLog.placeData',
         PlaceEntity,
         'unloadingPlace',
         'unloadingLog.placeId = unloadingPlace.id',
       )
-      .leftJoinAndMapOne(
-        'load.senderData',
-        PlaceEntity,
-        'senderLog',
-        'load.senderId = senderLog.id',
-      )
-      .leftJoinAndMapOne(
-        'load.receiverData',
-        PlaceEntity,
-        'receiverLog',
-        'load.receiverId = receiverLog.id',
-      )
+      .leftJoinAndMapOne('load.senderData', PlaceEntity, 'senderLog', 'load.senderId = senderLog.id')
+      .leftJoinAndMapOne('load.receiverData', PlaceEntity, 'receiverLog', 'load.receiverId = receiverLog.id')
       .orderBy('load.id', 'DESC')
       .skip((Number(page) - 1) * Number(perPage))
       .take(Number(perPage));

@@ -20,7 +20,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ActiveRouteGuard } from '../guards/active-route.guard';
 import { ActiveRouteObj } from '../decorators/active-route-obj.decorator';
 import { TourEntity } from '../tours/tour.entity';
-import { DayBurnedFuelRes } from '../types/day/DayBurnedFuelRes';
+import { DayBurnedFuelRes } from '../types';
 import { DayInterface } from '../types';
 
 @Controller('days')
@@ -43,7 +43,7 @@ export class DaysController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getActiveDay')
-  async getActiveDay(@UserObj() user: UserEntity): Promise<DayEntity> {
+  async getActiveDay(@UserObj() user: UserEntity): Promise<DayInterface> {
     return await this.daysService.getActiveDay(user.id);
   }
 
@@ -54,13 +54,15 @@ export class DaysController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('getYourLastDay')
+  async getYourLastDay(@UserObj() user: UserEntity): Promise<DayInterface> {
+    return await this.daysService.getYourLastDay(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('burnedFuelByTour/:tourId')
   async getBurnedFuelByTour(
-    @Param(
-      'tourId',
-      new ParseIntPipe(),
-      new ValidationPipe({ transform: true }),
-    )
+    @Param('tourId', new ParseIntPipe(), new ValidationPipe({ transform: true }))
     tourId: number,
     @UserObj() user: UserEntity,
   ): Promise<DayBurnedFuelRes> {
@@ -69,10 +71,7 @@ export class DaysController {
 
   @UseGuards(JwtAuthGuard, ActiveRouteGuard)
   @Post('finish')
-  async finish(
-    @Body() data: DayFinishDto,
-    @UserObj() user: UserEntity,
-  ): Promise<DayEntity> {
+  async finish(@Body() data: DayFinishDto, @UserObj() user: UserEntity): Promise<DayEntity> {
     const activeDay = await this.daysService.getActiveDay(user.id);
     if (!activeDay) {
       throw new BadRequestException('dayNotExist');
@@ -92,10 +91,7 @@ export class DaysController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getByTourId/:tourId')
-  async getByTourId(
-    @Param('tourId') tourId: string,
-    @UserObj() user: UserEntity,
-  ): Promise<DayInterface[]> {
+  async getByTourId(@Param('tourId') tourId: string, @UserObj() user: UserEntity): Promise<DayInterface[]> {
     return await this.daysService.getByTourId(user.id, Number(tourId));
   }
 }

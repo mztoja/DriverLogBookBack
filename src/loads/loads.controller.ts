@@ -73,18 +73,19 @@ export class LoadsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getNotUnloadedLoads')
-  async getNotUnloadedLoads(
-    @UserObj() user: UserEntity,
-  ): Promise<LoadInterface[]> {
+  async getNotUnloadedLoads(@UserObj() user: UserEntity): Promise<LoadInterface[]> {
     return this.loadsService.getNotUnloadedLoads(user.id);
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('getNotUnloadedLoadsMass')
+  async getNotUnloadedLoadsMass(@UserObj() user: UserEntity): Promise<number> {
+    return this.loadsService.getNotUnloadedLoadsMass(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('getUnloadingPlace/:id')
-  async getUnloadingPlace(
-    @UserObj() user: UserEntity,
-    @Param('id') loadId: number,
-  ): Promise<PlaceEntity> {
+  async getUnloadingPlace(@UserObj() user: UserEntity, @Param('id') loadId: number): Promise<PlaceEntity> {
     const load = await this.loadsService.findById(loadId);
     if (!load || load.userId !== user.id) {
       throw new NotFoundException();
@@ -94,10 +95,7 @@ export class LoadsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getLoadDetails/:id')
-  async getLoadDetails(
-    @UserObj() user: UserEntity,
-    @Param('id') loadId: number,
-  ): Promise<LoadEntity> {
+  async getLoadDetails(@UserObj() user: UserEntity, @Param('id') loadId: number): Promise<LoadEntity> {
     const load = await this.loadsService.findById(loadId);
     if (!load || load.userId !== user.id) {
       throw new NotFoundException();
@@ -117,10 +115,7 @@ export class LoadsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getByTourId/:tourId')
-  async getByTourId(
-    @Param('tourId') tourId: string,
-    @UserObj() user: UserEntity,
-  ): Promise<LoadInterface[]> {
+  async getByTourId(@Param('tourId') tourId: string, @UserObj() user: UserEntity): Promise<LoadInterface[]> {
     return await this.loadsService.getLoadsByTour(user.id, Number(tourId));
   }
 }

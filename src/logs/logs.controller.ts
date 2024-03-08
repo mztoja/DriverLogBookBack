@@ -1,13 +1,4 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  NotFoundException,
-  Param,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
 import { LogsService } from './logs.service';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
@@ -42,12 +33,7 @@ export class LogsController {
     @UserObj() user: UserEntity,
     @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<LogEntity> {
-    return await this.logsService.create(
-      data,
-      user.id,
-      activeRoute.id,
-      logTypeEnum.generalLogAdded,
-    );
+    return await this.logsService.create(data, user.id, activeRoute.id, logTypeEnum.generalLogAdded);
   }
 
   @UseGuards(JwtAuthGuard, ActiveRouteGuard)
@@ -64,20 +50,12 @@ export class LogsController {
       await this.bordersService.create(data.place, user.country, data.country);
     }
     delete data.addNewBorder;
-    return await this.logsService.create(
-      data,
-      user.id,
-      activeRoute.id,
-      logTypeEnum.crossBorder,
-    );
+    return await this.logsService.create(data, user.id, activeRoute.id, logTypeEnum.crossBorder);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('/getById/:id')
-  async getById(
-    @Param('id') id: string,
-    @UserObj() user: UserEntity,
-  ): Promise<LogEntity> {
+  async getById(@Param('id') id: string, @UserObj() user: UserEntity): Promise<LogEntity> {
     const log = await this.logsService.find(Number(id));
     if (!log || log.userId !== user.id) {
       throw new NotFoundException();
@@ -102,10 +80,7 @@ export class LogsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getByTourId/:tourId')
-  async getByTourId(
-    @Param('tourId') tourId: string,
-    @UserObj() user: UserEntity,
-  ): Promise<LogInterface[]> {
+  async getByTourId(@Param('tourId') tourId: string, @UserObj() user: UserEntity): Promise<LogInterface[]> {
     return await this.logsService.getByTourId(user.id, Number(tourId));
   }
 
@@ -120,16 +95,8 @@ export class LogsController {
       throw new BadRequestException('trailerExist');
     }
     const trailer = data.action.split(': ')[1];
-    await this.toursService.changeTrailer(
-      activeRoute.id,
-      trailer.replace(/\s/g, '').toUpperCase(),
-    );
-    return await this.logsService.create(
-      data,
-      user.id,
-      activeRoute.id,
-      logTypeEnum.attachTrailer,
-    );
+    await this.toursService.changeTrailer(activeRoute.id, trailer.replace(/\s/g, '').toUpperCase());
+    return await this.logsService.create(data, user.id, activeRoute.id, logTypeEnum.attachTrailer);
   }
 
   @UseGuards(JwtAuthGuard, ActiveRouteGuard)
@@ -143,9 +110,7 @@ export class LogsController {
       throw new BadRequestException('noTrailer');
     }
     const unloadedLoads = await this.loadsService.getNotUnloadedLoads(user.id);
-    const trailerLoads = unloadedLoads.filter(
-      (load) => load.vehicle === activeRoute.trailer,
-    );
+    const trailerLoads = unloadedLoads.filter((load) => load.vehicle === activeRoute.trailer);
     data.action = data.action + ': ' + activeRoute.trailer;
     if (trailerLoads.length > 0) {
       trailerLoads.map(async (load) => {
@@ -168,12 +133,7 @@ export class LogsController {
       });
     }
     await this.toursService.changeTrailer(activeRoute.id, null);
-    return await this.logsService.create(
-      data,
-      user.id,
-      activeRoute.id,
-      logTypeEnum.detachTrailer,
-    );
+    return await this.logsService.create(data, user.id, activeRoute.id, logTypeEnum.detachTrailer);
   }
 
   @UseGuards(JwtAuthGuard, ActiveRouteGuard)
@@ -187,12 +147,7 @@ export class LogsController {
     if (data.placeId !== 0) {
       await this.usersService.markArrival(user.id, data.placeId);
     }
-    return await this.logsService.create(
-      data,
-      user.id,
-      activeRoute.id,
-      logTypeEnum.arrivedToLoading,
-    );
+    return await this.logsService.create(data, user.id, activeRoute.id, logTypeEnum.arrivedToLoading);
   }
 
   @UseGuards(JwtAuthGuard, ActiveRouteGuard)
@@ -202,11 +157,12 @@ export class LogsController {
     @UserObj() user: UserEntity,
     @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<LogEntity> {
-    return await this.logsService.create(
-      data,
-      user.id,
-      activeRoute.id,
-      logTypeEnum.arrivedToUnloading,
-    );
+    return await this.logsService.create(data, user.id, activeRoute.id, logTypeEnum.arrivedToUnloading);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('getLastLog')
+  async getLastLog(@UserObj() user: UserEntity): Promise<LogInterface> {
+    return await this.logsService.getLastLog(user.id);
   }
 }

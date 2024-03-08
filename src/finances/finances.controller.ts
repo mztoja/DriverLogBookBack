@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  Post,
-  UseGuards,
-  ValidationPipe,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards, ValidationPipe } from '@nestjs/common';
 import { FinancesService } from './finances.service';
 import { FinanceEntity } from './finance.entity';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -17,7 +8,7 @@ import { FinanceCreateDto } from './dto/finance-create.dto';
 import { ActiveRouteGuard } from '../guards/active-route.guard';
 import { ActiveRouteObj } from '../decorators/active-route-obj.decorator';
 import { TourEntity } from '../tours/tour.entity';
-import { FinanceRefuelValueRes } from '../types/finance/FinanceRefuelValueRes';
+import { FinanceRefuelValueRes } from '../types';
 import { FinanceListResponse } from '../types/finance/FinanceListResponse';
 import { FinanceInterface } from '../types';
 
@@ -28,11 +19,7 @@ export class FinancesController {
   @UseGuards(JwtAuthGuard)
   @Get('getRefuelValueByTour/:tourId')
   async getRefuelValueByTour(
-    @Param(
-      'tourId',
-      new ParseIntPipe(),
-      new ValidationPipe({ transform: true }),
-    )
+    @Param('tourId', new ParseIntPipe(), new ValidationPipe({ transform: true }))
     tourId: number,
     @UserObj()
     user: UserEntity,
@@ -62,10 +49,7 @@ export class FinancesController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getByTourId/:tourId')
-  async getByTourId(
-    @Param('tourId') tourId: string,
-    @UserObj() user: UserEntity,
-  ): Promise<FinanceInterface[]> {
+  async getByTourId(@Param('tourId') tourId: string, @UserObj() user: UserEntity): Promise<FinanceInterface[]> {
     return await this.financesService.getByTourId(user.id, Number(tourId));
   }
 }

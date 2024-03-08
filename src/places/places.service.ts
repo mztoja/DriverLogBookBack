@@ -42,14 +42,16 @@ export class PlacesService {
   }
 
   async getPlacesList(userId: string): Promise<PlaceEntity[]> {
-    try {
-      return await this.placeRepository.find({
-        where: { userId },
-        order: { country: 'ASC', code: 'ASC', name: 'ASC' },
-      });
-    } catch {
-      throw new InternalServerErrorException();
-    }
+    return await this.placeRepository.find({
+      where: { userId },
+      order: { country: 'ASC', code: 'ASC', name: 'ASC' },
+    });
+  }
+
+  async getOne(userId: string, id: number): Promise<PlaceEntity> {
+    return await this.placeRepository.findOne({
+      where: { id, userId },
+    });
   }
 
   async getCompanyList(userId: string): Promise<PlaceEntity[]> {

@@ -1,12 +1,4 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ToursService } from './tours.service';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
@@ -41,10 +33,7 @@ export class ToursController {
 
   @UseGuards(JwtAuthGuard)
   @Post('finish')
-  async finish(
-    @Body() data: TourFinishDto,
-    @UserObj() user: UserEntity,
-  ): Promise<TourEntity> {
+  async finish(@Body() data: TourFinishDto, @UserObj() user: UserEntity): Promise<TourEntity> {
     const activeDay = await this.daysService.getActiveDay(user.id);
     if (activeDay) {
       throw new BadRequestException('dayExistRegardRoute');
@@ -62,24 +51,19 @@ export class ToursController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getActiveRoute')
-  async getActiveRoute(@UserObj() user: UserEntity): Promise<TourEntity> {
+  async getActiveRoute(@UserObj() user: UserEntity): Promise<TourInterface> {
     return await this.toursService.getActiveRoute(user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('getRouteById/:id')
-  async getRouteById(
-    @Param('id') id: string,
-    @UserObj() user: UserEntity,
-  ): Promise<TourInterface> {
+  async getRouteById(@Param('id') id: string, @UserObj() user: UserEntity): Promise<TourInterface> {
     return await this.toursService.getRouteById(user.id, Number(id));
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('getRouteNumbers')
-  async getRouteNumbers(
-    @Body() data: TourGetNumbersDto,
-  ): Promise<TourNumbersInterface[]> {
+  async getRouteNumbers(@Body() data: TourGetNumbersDto): Promise<TourNumbersInterface[]> {
     return await this.toursService.getRouteNumbers(data.tourIds);
   }
 
@@ -90,45 +74,28 @@ export class ToursController {
     @UserObj() user: UserEntity,
   ): Promise<TourInterface[]> {
     if (monthlySettlementId) {
-      return await this.toursService.getSettledRoutes(
-        user.id,
-        Number(monthlySettlementId),
-      );
+      return await this.toursService.getSettledRoutes(user.id, Number(monthlySettlementId));
     }
     return await this.toursService.getUnaccountedRoutes(user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('createSettlement')
-  async createSettlement(
-    @Body() data: TourCreateSettlementDto,
-    @UserObj() user: UserEntity,
-  ): Promise<TourMEntity> {
-    const selectedRoutes = await this.toursService.getToursByManyIds(
-      data.toursId,
-    );
-    const allRoutesBelongToUser = selectedRoutes.every(
-      (route) => route.userId === user.id,
-    );
+  async createSettlement(@Body() data: TourCreateSettlementDto, @UserObj() user: UserEntity): Promise<TourMEntity> {
+    const selectedRoutes = await this.toursService.getToursByManyIds(data.toursId);
+    const allRoutesBelongToUser = selectedRoutes.every((route) => route.userId === user.id);
     if (!allRoutesBelongToUser) {
       throw new BadRequestException('');
     }
     if (selectedRoutes.length === 0) {
       throw new BadRequestException('youHaveToChooseRoutes');
     }
-    return await this.toursService.createSettlement(
-      user.id,
-      data,
-      selectedRoutes,
-    );
+    return await this.toursService.createSettlement(user.id, data, selectedRoutes);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('getSettlements/:year')
-  async getSettlements(
-    @Param('year') year: string,
-    @UserObj() user: UserEntity,
-  ): Promise<TourMEntity[]> {
+  async getSettlements(@Param('year') year: string, @UserObj() user: UserEntity): Promise<TourMEntity[]> {
     return await this.toursService.getSettlements(user.id, year);
   }
 }
