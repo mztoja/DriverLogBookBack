@@ -73,17 +73,18 @@ export class ToursService {
       action: data.action,
     };
     const stopLog = await this.logsService.create(newLogData, user.id, activeRoute.id, logTypeEnum.tours);
-    const driveTime = await this.daysService.getTotalDriveTimeByRoute(user.id, activeRoute.id);
-    const workTime = await this.daysService.getTotalWorkTimeByRoute(user.id, activeRoute.id);
-    const distance = await this.daysService.getDistanceByTour(user.id, activeRoute.id);
+    //const driveTime = await this.daysService.getTotalDriveTimeByRoute(user.id, activeRoute.id);
+    //const workTime = await this.daysService.getTotalWorkTimeByRoute(user.id, activeRoute.id);
+    //const distance = await this.daysService.getDistanceByTour(user.id, activeRoute.id);
+    const { workTime, distance, totalRefuel } = activeRoute;
     const allDaysTime = subtractDatesToTime(stopLog.date, startLog.date);
     const allDays = calculateDaysFromTime(allDaysTime);
     const daysOnDuty = calculateDaysFromTime(workTime);
     const daysOffDuty = allDays - daysOnDuty;
-    const burnedFuelComp = (await this.daysService.getBurnedFuelByTour(user.id, activeRoute.id)).burnedFuel;
-    const totalRefuel = (await this.financesService.getRefuelValueByTour(user.id, activeRoute.id)).refuelValue;
-    const loads = await this.loadsService.getLoadsByTour(user.id, activeRoute.id);
-    const loadsWeight = loads.reduce((sum, load) => sum + load.weight, 0);
+    // const burnedFuelComp = (await this.daysService.getBurnedFuelByTour(user.id, activeRoute.id)).burnedFuel;
+    //const totalRefuel = (await this.financesService.getRefuelValueByTour(user.id, activeRoute.id)).refuelValue;
+    // const loads = await this.loadsService.getLoadsByTour(user.id, activeRoute.id);
+    // const loadsWeight = loads.reduce((sum, load) => sum + load.weight, 0);
     const expectedSalary = calculateSalary(user.bid, user.bidType, distance, allDays);
     const outgoings = await this.financesService.getOutgoingsByTour(user.id, activeRoute.id);
     await this.tourRepository.update(
@@ -91,18 +92,18 @@ export class ToursService {
       {
         status: tourStatusEnum.finished,
         stopLogId: stopLog.id,
-        distance,
-        driveTime,
-        workTime,
+        // distance,
+        // driveTime,
+        // workTime,
         // distance,
         daysOnDuty: daysOnDuty === 0 ? 1 : daysOnDuty,
         daysOffDuty,
-        totalRefuel,
+        // totalRefuel,
         fuelStateAfter: data.fuelStateAfter,
-        burnedFuelComp,
+        //burnedFuelComp,
         burnedFuelReal: Number(activeRoute.fuelStateBefore) + totalRefuel - data.fuelStateAfter,
-        numberOfLoads: loads.length,
-        avgWeight: isNaN(Math.round(loadsWeight / loads.length)) ? 0 : Math.round(loadsWeight / loads.length),
+        // numberOfLoads: loads.length,
+        // avgWeight: isNaN(Math.round(loadsWeight / loads.length)) ? 0 : Math.round(loadsWeight / loads.length),
         expectedSalary,
         outgoings,
         currency: user.currency,
@@ -340,5 +341,29 @@ export class ToursService {
     if (tour) {
       await this.tourRepository.update({ id: tour.id }, { distance: Number(tour.distance) + Number(value) });
     }
+  }
+
+  async addTimesAndFuel(id: number, userId: string, driveTime: string, workTime: string, fuel: number): Promise<void> {
+    const tour = await this.tourRepository.findOne({ where: { id, userId } });
+    const newDriveTime = addTimes(tour.driveTime, driveTime);
+    const newWorkTime = addTimes(tour.workTime, workTime);
+    const newFuel = Number(fuel) + Number(tour.burnedFuelComp);
+    await this.tourRepository.update(
+      { id: tour.id },
+      { driveTime: newDriveTime, workTime: newWorkTime, burnedFuelComp: newFuel },
+    );
+  }
+
+  async addRefuel(id: number, userId: string, value: number): Promise<void> {
+    const tour = await this.tourRepository.findOne({ where: { id, userId } });
+    const totalRefuel = Number(tour.totalRefuel) + Number(value);
+    await this.tourRepository.update({ id: tour.id }, { totalRefuel });
+  }
+
+  async addLoading(id: number, userId: string, weight: number): Promise<void> {
+    const tour = await this.tourRepository.findOne({ where: { id, userId } });
+    const numberOfLoads = Number(tour.numberOfLoads) + 1;
+    const avgWeight = Math.round((Number(tour.avgWeight) + Number(weight)) / 2);
+    await this.tourRepository.update({ id: tour.id }, { numberOfLoads, avgWeight });
   }
 }

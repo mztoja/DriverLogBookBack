@@ -1,13 +1,4 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { VehiclesService } from './vehicles.service';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
@@ -24,28 +15,14 @@ export class VehiclesController {
 
   @UseGuards(JwtAuthGuard)
   @Get('findByRegistration/:regNr')
-  async findByRegistration(
-    @UserObj() user: UserEntity,
-    @Param('regNr') regNr: string,
-  ): Promise<VehicleEntity> {
-    return this.vehiclesService.findByRegistration(
-      regNr,
-      user.id,
-      user.companyId,
-    );
+  async findByRegistration(@UserObj() user: UserEntity, @Param('regNr') regNr: string): Promise<VehicleEntity> {
+    return this.vehiclesService.findByRegistration(regNr, user.id, user.companyId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('create')
-  async create(
-    @UserObj() user: UserEntity,
-    @Body() body: VehicleAddDto,
-  ): Promise<VehicleEntity> {
-    const vehicle = await this.vehiclesService.findByRegistration(
-      body.registrationNr,
-      user.id,
-      user.companyId,
-    );
+  async create(@UserObj() user: UserEntity, @Body() body: VehicleAddDto): Promise<VehicleEntity> {
+    const vehicle = await this.vehiclesService.findByRegistration(body.registrationNr, user.id, user.companyId);
     if (vehicle) {
       throw new BadRequestException('vehicleRegExist');
     }
@@ -108,5 +85,11 @@ export class VehiclesController {
       throw new BadRequestException('vehicleRegExist');
     }
     return await this.vehiclesService.truckEdit(vehicle.id, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('getRegistrationById/:id')
+  async getRegistrationById(@UserObj() user: UserEntity, @Param('id') id: string): Promise<{ data: string }> {
+    return await this.vehiclesService.getRegistrationById(user.id, Number(id));
   }
 }

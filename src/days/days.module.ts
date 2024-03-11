@@ -7,11 +7,7 @@ import { DayEntity } from './day.entity';
 import { ToursModule } from '../tours/tours.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([DayEntity]),
-    forwardRef(() => LogsModule),
-    forwardRef(() => ToursModule),
-  ],
+  imports: [TypeOrmModule.forFeature([DayEntity]), forwardRef(() => LogsModule), forwardRef(() => ToursModule)],
   controllers: [DaysController],
   providers: [DaysService],
   exports: [DaysService],

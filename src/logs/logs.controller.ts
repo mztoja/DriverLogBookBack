@@ -113,24 +113,26 @@ export class LogsController {
     const trailerLoads = unloadedLoads.filter((load) => load.vehicle === activeRoute.trailer);
     data.action = data.action + ': ' + activeRoute.trailer;
     if (trailerLoads.length > 0) {
-      trailerLoads.map(async (load) => {
-        await this.loadsService.unload(
-          {
-            loadId: load.id,
-            isPlaceAsReceiver: false,
-            notes: data.action,
-            country: data.country,
-            odometer: data.odometer,
-            placeId: data.placeId,
-            place: data.place,
-            date: data.date,
-            action: data.unloadAction,
-          },
-          load,
-          activeRoute.id,
-          user.id,
-        );
-      });
+      await Promise.all(
+        trailerLoads.map(async (load) => {
+          await this.loadsService.unload(
+            {
+              loadId: load.id,
+              isPlaceAsReceiver: false,
+              notes: data.action,
+              country: data.country,
+              odometer: data.odometer,
+              placeId: data.placeId,
+              place: data.place,
+              date: data.date,
+              action: data.unloadAction,
+            },
+            load,
+            activeRoute.id,
+            user.id,
+          );
+        }),
+      );
     }
     await this.toursService.changeTrailer(activeRoute.id, null);
     return await this.logsService.create(data, user.id, activeRoute.id, logTypeEnum.detachTrailer);

@@ -36,17 +36,12 @@ export class VehiclesService {
     });
   }
 
-  async create(
-    userId: string,
-    companyId: number,
-    data: VehicleAddDto,
-  ): Promise<VehicleEntity> {
+  async create(userId: string, companyId: number, data: VehicleAddDto): Promise<VehicleEntity> {
     return await this.vehicleRepository.save({
       userId,
       companyId,
       type: data.type,
-      isLoadable:
-        data.type === vehicleTypeEnum.trailer ? true : data.isLoadable,
+      isLoadable: data.type === vehicleTypeEnum.trailer ? true : data.isLoadable,
       registrationNr: data.registrationNr,
       weight: data.weight,
       year: data.year,
@@ -74,10 +69,7 @@ export class VehiclesService {
     });
   }
 
-  async trailerEdit(
-    id: number,
-    data: VehicleTrailerEditDto,
-  ): Promise<UpdateResult> {
+  async trailerEdit(id: number, data: VehicleTrailerEditDto): Promise<UpdateResult> {
     return await this.vehicleRepository.update(
       { id },
       {
@@ -92,10 +84,7 @@ export class VehiclesService {
     );
   }
 
-  async truckEdit(
-    id: number,
-    data: VehicleTruckEditDto,
-  ): Promise<UpdateResult> {
+  async truckEdit(id: number, data: VehicleTruckEditDto): Promise<UpdateResult> {
     return await this.vehicleRepository.update(
       { id },
       {
@@ -112,5 +101,10 @@ export class VehiclesService {
         notes: data.notes === '' ? null : data.notes,
       },
     );
+  }
+
+  async getRegistrationById(userId: string, id: number): Promise<{ data: string }> {
+    const vehicle = await this.vehicleRepository.findOne({ where: { id, userId } });
+    return { data: vehicle.registrationNr };
   }
 }

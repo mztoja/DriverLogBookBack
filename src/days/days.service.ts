@@ -13,12 +13,14 @@ import { LogEntity } from '../logs/log.entity';
 import { DayListResponse } from '../types/day/DayListResponse';
 import { DayBurnedFuelRes } from '../types';
 import { addTimes } from '../utlis/addTimes';
+import { ToursService } from '../tours/tours.service';
 
 @Injectable()
 export class DaysService {
   constructor(
     @InjectRepository(DayEntity) private dayRepository: Repository<DayEntity>,
     @Inject(forwardRef(() => LogsService)) private logsService: LogsService,
+    @Inject(forwardRef(() => ToursService)) private toursService: ToursService,
   ) {}
 
   async create(data: DayCreateDto, userId: string, tourId: number): Promise<DayEntity> {
@@ -72,6 +74,11 @@ export class DaysService {
       action: data.action,
     };
     const stopLog = await this.logsService.create(logData, activeDay.userId, activeDay.tourId, logTypeEnum.days);
+    const workTime = subtractDatesToTime(stopLog.date, startLog.date);
+    const fuelBurned =
+      userFuelConType === userFuelContypeEnum.per100km
+        ? ((stopLog.odometer - startLog.odometer) / 100) * data.fuelCombustion
+        : data.fuelCombustion;
     await this.dayRepository.update(
       { id: activeDay.id },
       {
@@ -84,14 +91,19 @@ export class DaysService {
         driveTime: data.driveTime,
         driveTime2: data.driveTime2,
         stopLogId: stopLog.id,
-        fuelBurned:
-          userFuelConType === userFuelContypeEnum.per100km
-            ? ((stopLog.odometer - startLog.odometer) / 100) * data.fuelCombustion
-            : data.fuelCombustion,
-        workTime: subtractDatesToTime(stopLog.date, startLog.date),
+        fuelBurned,
+        workTime,
       },
     );
-    return await this.dayRepository.findOne({ where: { id: activeDay.id } });
+    const newDay = await this.dayRepository.findOne({ where: { id: activeDay.id } });
+    await this.toursService.addTimesAndFuel(
+      activeDay.tourId,
+      activeDay.userId,
+      addTimes(newDay.driveTime, newDay.driveTime2),
+      newDay.workTime,
+      newDay.fuelBurned,
+    );
+    return newDay;
   }
 
   async get(userId: string, page: string, perPage: string): Promise<DayListResponse> {

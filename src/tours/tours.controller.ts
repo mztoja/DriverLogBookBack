@@ -43,8 +43,27 @@ export class ToursController {
       throw new BadRequestException('noActiveRoute');
     }
     const activeLoads = await this.loadsService.getNotUnloadedLoads(user.id);
-    if (activeLoads.length !== 0) {
-      throw new BadRequestException('youHaveUnloadedLoads');
+    if (activeLoads.length > 0) {
+      await Promise.all(
+        activeLoads.map(async (load) => {
+          await this.loadsService.unload(
+            {
+              loadId: load.id,
+              isPlaceAsReceiver: false,
+              notes: data.unloadNote,
+              country: data.country,
+              odometer: data.odometer,
+              placeId: data.placeId,
+              place: data.place,
+              date: data.date,
+              action: data.unloadAction,
+            },
+            load,
+            activeRoute.id,
+            user.id,
+          );
+        }),
+      );
     }
     return await this.toursService.finish(data, user, activeRoute);
   }
