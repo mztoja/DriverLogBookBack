@@ -4,5 +4,5 @@ export const subtractDatesToTime = (higherDate: string, lowerDate: string) => {
   const diff = Math.abs(data1.getTime() - data2.getTime());
   const hours = Math.floor(diff / 3600000);
   const minutes = Math.floor((diff % 3600000) / 60000);
-  return `${hours}:${minutes}`;
+  return `${hours}:${minutes.toString().padStart(2, '0')}`;
 };

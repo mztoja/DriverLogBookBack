@@ -1,5 +1,7 @@
 export enum logTypeEnum {
   tours = 1,
+  tourBrake = 10,
+  tourResume = 11,
   days = 2,
   attachTrailer = 3,
   detachTrailer = 4,

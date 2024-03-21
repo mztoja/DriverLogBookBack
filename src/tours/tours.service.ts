@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Like, Not, Repository } from 'typeorm';
 import { TourEntity } from './tour.entity';
-import { logTypeEnum, TourInterface, TourNumbersInterface, tourStatusEnum } from '../types';
+import { logTypeEnum, TourInterface, TourNumbersInterface, tourStatusEnum, userBidTypeEnum } from '../types';
 import { TourCreateDto } from './dto/tour-create.dto';
 import { LogsService } from '../logs/logs.service';
 import { LogCreateDto } from '../logs/dto/log-create.dto';
@@ -19,6 +19,7 @@ import { PlaceEntity } from '../places/place.entity';
 import { TourMEntity } from './tourM.entity';
 import { TourCreateSettlementDto } from './dto/tour-create-settlement.dto';
 import { addTimes } from '../utlis/addTimes';
+import { calcSecondsFromTime } from '../utlis/calcSecondsFromTime';
 
 @Injectable()
 export class ToursService {
@@ -236,8 +237,8 @@ export class ToursService {
     let maxDays = 0;
     let maxDaysTourId = 0;
     for (const tour of toursData) {
-      driveTime = addTimes(driveTime, tour.driveTime);
-      workTime = addTimes(workTime, tour.workTime);
+      driveTime = addTimes(driveTime, calcSecondsFromTime(tour.driveTime));
+      workTime = addTimes(workTime, calcSecondsFromTime(tour.workTime));
       distance = distance + Number(tour.distance);
       daysOnDuty = daysOnDuty + Number(tour.daysOnDuty);
       daysOffDuty = daysOffDuty + Number(tour.daysOffDuty);
@@ -343,7 +344,7 @@ export class ToursService {
     }
   }
 
-  async addTimesAndFuel(id: number, userId: string, driveTime: string, workTime: string, fuel: number): Promise<void> {
+  async addTimesAndFuel(id: number, userId: string, driveTime: number, workTime: number, fuel: number): Promise<void> {
     const tour = await this.tourRepository.findOne({ where: { id, userId } });
     const newDriveTime = addTimes(tour.driveTime, driveTime);
     const newWorkTime = addTimes(tour.workTime, workTime);
@@ -365,5 +366,17 @@ export class ToursService {
     const numberOfLoads = Number(tour.numberOfLoads) + 1;
     const avgWeight = Math.round((Number(tour.avgWeight) + Number(weight)) / 2);
     await this.tourRepository.update({ id: tour.id }, { numberOfLoads, avgWeight });
+  }
+
+  async calcDaysOnDuty(id: number, userId: string): Promise<void> {
+    const tour = await this.tourRepository.findOne({ where: { id, userId } });
+    const daysOnDuty = calculateDaysFromTime(tour.workTime);
+    await this.tourRepository.update({ id, userId }, { daysOnDuty });
+  }
+
+  async calcExpectedSalary(id: number, userId: string, userBid: number, userBidType: userBidTypeEnum): Promise<void> {
+    const tour = await this.tourRepository.findOne({ where: { id, userId } });
+    const expectedSalary = calculateSalary(userBid, userBidType, tour.distance, tour.daysOnDuty + tour.daysOffDuty);
+    await this.tourRepository.update({ id: tour.id }, { expectedSalary });
   }
 }

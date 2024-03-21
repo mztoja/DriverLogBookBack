@@ -1,13 +1,21 @@
-import { forwardRef, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { LogEntity } from './log.entity';
 import { LogCreateDto } from './dto/log-create.dto';
-import { LogInterface, LogListResponse, logTypeEnum } from '../types';
+import { LogInterface, LogListResponse, logTypeEnum, tourStatusEnum } from '../types';
 import { UsersService } from '../users/users.service';
 import { PlaceEntity } from '../places/place.entity';
 import { ToursService } from '../tours/tours.service';
 import { DaysService } from '../days/days.service';
+import { LogEditDto } from './dto/log-edit.dto';
 
 @Injectable()
 export class LogsService {
@@ -48,6 +56,34 @@ export class LogsService {
       tourId,
       type,
     });
+  }
+
+  async edit(data: LogEditDto, userId: string): Promise<LogEntity> {
+    const old = await this.logRepository.findOne({ where: { id: data.id, userId } });
+    if (!old) {
+      throw new NotFoundException();
+    }
+    const tour = await this.toursService.getRouteById(userId, old.tourId);
+    if (!tour || tour.status === tourStatusEnum.settled) {
+      throw new BadRequestException('cannotEditSettledTourData');
+    }
+    const distanceDiff: number = Number(data.odometer) - Number(old.odometer);
+    if (distanceDiff !== 0) {
+      await this.toursService.addDistance(tour.id, userId, distanceDiff);
+    }
+    await this.logRepository.update(
+      { id: old.id },
+      {
+        odometer: data.odometer,
+        date: data.date,
+        action: data.action,
+        country: data.country,
+        placeId: data.placeId,
+        place: data.place,
+        notes: data.notes === '' ? null : data.notes,
+      },
+    );
+    return await this.logRepository.findOne({ where: { id: old.id } });
   }
 
   async setTourId(id: number, tourId: number) {

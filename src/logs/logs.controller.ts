@@ -1,4 +1,14 @@
-import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { LogsService } from './logs.service';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
@@ -15,6 +25,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ActiveRouteGuard } from '../guards/active-route.guard';
 import { TourEntity } from '../tours/tour.entity';
 import { ActiveRouteObj } from '../decorators/active-route-obj.decorator';
+import { LogEditDto } from './dto/log-edit.dto';
 
 @Controller('logs')
 export class LogsController {
@@ -34,6 +45,12 @@ export class LogsController {
     @ActiveRouteObj() activeRoute: TourEntity,
   ): Promise<LogEntity> {
     return await this.logsService.create(data, user.id, activeRoute.id, logTypeEnum.generalLogAdded);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('edit')
+  async edit(@Body() data: LogEditDto, @UserObj() user: UserEntity): Promise<LogEntity> {
+    return await this.logsService.edit(data, user.id);
   }
 
   @UseGuards(JwtAuthGuard, ActiveRouteGuard)

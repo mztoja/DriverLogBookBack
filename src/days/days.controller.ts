@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   UseGuards,
   ValidationPipe,
@@ -22,6 +23,8 @@ import { ActiveRouteObj } from '../decorators/active-route-obj.decorator';
 import { TourEntity } from '../tours/tour.entity';
 import { DayBurnedFuelRes } from '../types';
 import { DayInterface } from '../types';
+import { DayEditDto } from './dto/day-edit.dto';
+import { DaySimpleEditDto } from './dto/day-simple-edit.dto';
 
 @Controller('days')
 export class DaysController {
@@ -90,8 +93,26 @@ export class DaysController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('getDayByLogId/:logId')
+  async getDayByLogId(@Param('logId') logId: string, @UserObj() user: UserEntity): Promise<DayInterface> {
+    return await this.daysService.getByLogId(user.id, Number(logId));
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('getByTourId/:tourId')
   async getByTourId(@Param('tourId') tourId: string, @UserObj() user: UserEntity): Promise<DayInterface[]> {
     return await this.daysService.getByTourId(user.id, Number(tourId));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('edit')
+  async edit(@Body() data: DayEditDto, @UserObj() user: UserEntity): Promise<DayEntity> {
+    return await this.daysService.edit(data, user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('simpleEdit')
+  async simpleEdit(@Body() data: DaySimpleEditDto, @UserObj() user: UserEntity): Promise<DayEntity> {
+    return await this.daysService.simpleEdit(data, user.id);
   }
 }

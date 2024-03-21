@@ -1,19 +1,30 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, LessThan, Not, Repository } from 'typeorm';
 import { LogsService } from '../logs/logs.service';
 import { DayEntity } from './day.entity';
 import { DayCreateDto } from './dto/day-create.dto';
-import { dayCardStateEnum, DayInterface, dayStatusEnum, logTypeEnum, userFuelContypeEnum } from '../types';
+import {
+  DayBurnedFuelRes,
+  dayCardStateEnum,
+  DayInterface,
+  dayStatusEnum,
+  logTypeEnum,
+  tourStatusEnum,
+  userFuelContypeEnum,
+} from '../types';
 import { LogCreateDto } from '../logs/dto/log-create.dto';
 import { DayFinishDto } from './dto/day-finish.dto';
 import { subtractDatesToTime } from '../utlis/subtractDatesToTime';
 import { PlaceEntity } from '../places/place.entity';
 import { LogEntity } from '../logs/log.entity';
 import { DayListResponse } from '../types/day/DayListResponse';
-import { DayBurnedFuelRes } from '../types';
 import { addTimes } from '../utlis/addTimes';
 import { ToursService } from '../tours/tours.service';
+import { DayEditDto } from './dto/day-edit.dto';
+import { calcSecondsFromTime } from '../utlis/calcSecondsFromTime';
+import { UserEntity } from '../users/user.entity';
+import { DaySimpleEditDto } from './dto/day-simple-edit.dto';
 
 @Injectable()
 export class DaysService {
@@ -99,10 +110,93 @@ export class DaysService {
     await this.toursService.addTimesAndFuel(
       activeDay.tourId,
       activeDay.userId,
-      addTimes(newDay.driveTime, newDay.driveTime2),
-      newDay.workTime,
+      calcSecondsFromTime(addTimes(newDay.driveTime, calcSecondsFromTime(newDay.driveTime2))),
+      calcSecondsFromTime(newDay.workTime),
       newDay.fuelBurned,
     );
+    return newDay;
+  }
+
+  async simpleEdit(data: DaySimpleEditDto, userId: string): Promise<DayEntity> {
+    const oldDay = await this.dayRepository.findOne({ where: { id: data.id, userId } });
+    if (!oldDay) {
+      throw new BadRequestException();
+    }
+    const startLog = await this.logsService.edit(data.startData, userId);
+    await this.dayRepository.update(
+      { id: oldDay.id },
+      {
+        cardState: data.cardState,
+        doubleCrew: data.doubleCrew,
+      },
+    );
+    const newDay = await this.dayRepository.findOne({ where: { id: oldDay.id } });
+    const olderDay = await this.dayRepository.findOne({
+      where: {
+        userId,
+        id: LessThan(newDay.id),
+        cardState: Not(dayCardStateEnum.notUsed),
+      },
+      order: { id: 'DESC' },
+    });
+    if (olderDay && newDay.cardState !== dayCardStateEnum.notUsed) {
+      const log = await this.logsService.find(olderDay.stopLogId);
+      const breakTime = subtractDatesToTime(startLog.date, log.date);
+      await this.dayRepository.update({ id: olderDay.id }, { breakTime });
+    } else if (olderDay && newDay.cardState === dayCardStateEnum.notUsed) {
+      await this.dayRepository.update({ id: olderDay.id }, { breakTime: '00:00:00' });
+    }
+    return newDay;
+  }
+
+  async edit(data: DayEditDto, user: UserEntity): Promise<DayEntity> {
+    const oldDay = await this.dayRepository.findOne({ where: { id: data.id, userId: user.id } });
+    if (!oldDay) {
+      throw new BadRequestException();
+    }
+    const tour = await this.toursService.getRouteById(user.id, oldDay.tourId);
+    if (!tour || tour.status === tourStatusEnum.settled) {
+      throw new BadRequestException('cannotEditSettledTourData');
+    }
+    const startLog = await this.logsService.edit(data.startData, user.id);
+    await this.logsService.edit(data.stopData, user.id);
+    await this.dayRepository.update(
+      { id: oldDay.id },
+      {
+        breakTime: data.breakTime,
+        distance: data.distance,
+        workTime: data.workTime,
+        fuelBurned: data.fuelBurned,
+        driveTime: data.driveTime,
+        driveTime2: data.driveTime2,
+        doubleCrew: data.doubleCrew,
+      },
+    );
+    const newDay = await this.dayRepository.findOne({ where: { id: oldDay.id } });
+    if (newDay.cardState !== dayCardStateEnum.notUsed) {
+      const olderDay = await this.dayRepository.findOne({
+        where: {
+          userId: user.id,
+          id: LessThan(newDay.id),
+          cardState: Not(dayCardStateEnum.notUsed),
+        },
+        order: { id: 'DESC' },
+      });
+      if (olderDay) {
+        const log = await this.logsService.find(olderDay.stopLogId);
+        const breakTime = subtractDatesToTime(startLog.date, log.date);
+        await this.dayRepository.update({ id: olderDay.id }, { breakTime });
+      }
+    }
+    const distance: number = Number(newDay.distance) - Number(oldDay.distance);
+    await this.toursService.addDistance(tour.id, user.id, distance);
+    const fuel: number = Number(newDay.fuelBurned) - Number(oldDay.fuelBurned);
+    const driveTime: number = calcSecondsFromTime(newDay.driveTime) - calcSecondsFromTime(oldDay.driveTime);
+    const driveTime2: number = calcSecondsFromTime(newDay.driveTime2) - calcSecondsFromTime(oldDay.driveTime2);
+    const workTime: number = calcSecondsFromTime(newDay.workTime) - calcSecondsFromTime(oldDay.workTime);
+    await this.toursService.addTimesAndFuel(tour.id, user.id, driveTime + driveTime2, workTime, fuel);
+    await this.toursService.calcDaysOnDuty(tour.id, user.id);
+    await this.toursService.calcExpectedSalary(tour.id, user.id, user.bid, user.bidType);
     return newDay;
   }
 
@@ -119,6 +213,17 @@ export class DaysService {
       .take(Number(perPage));
     const [items, totalItems] = await query.getManyAndCount();
     return { items, totalItems };
+  }
+
+  async getByLogId(userId: string, logId: number): Promise<DayInterface> {
+    return await this.dayRepository
+      .createQueryBuilder('day')
+      .where('day.userId = :userId AND (day.startLogId = :logId OR day.stopLogId = :logId)', { userId, logId })
+      .leftJoinAndMapOne('day.startData', LogEntity, 'startLog', 'day.startLogId = startLog.id')
+      .leftJoinAndMapOne('day.stopData', LogEntity, 'stopLog', 'day.stopLogId = stopLog.id')
+      .leftJoinAndMapOne('startLog.placeData', PlaceEntity, 'startPlace', 'startLog.placeId = startPlace.id')
+      .leftJoinAndMapOne('stopLog.placeData', PlaceEntity, 'stopPlace', 'stopLog.placeId = stopPlace.id')
+      .getOne();
   }
 
   async getActiveDay(userId: string): Promise<DayInterface> {
@@ -176,8 +281,8 @@ export class DaysService {
     const days = await this.getByTourId(userId, tourId);
     let driveTime = '00:00:00';
     days.map((day) => {
-      const sum = addTimes(day.driveTime, day.driveTime2);
-      driveTime = addTimes(driveTime, sum);
+      const sum = addTimes(day.driveTime, calcSecondsFromTime(day.driveTime2));
+      driveTime = addTimes(driveTime, calcSecondsFromTime(sum));
     });
     return driveTime;
   }
@@ -186,7 +291,7 @@ export class DaysService {
     const days = await this.getByTourId(userId, tourId);
     let workTime = '00:00:00';
     days.map((day) => {
-      workTime = addTimes(workTime, day.workTime);
+      workTime = addTimes(workTime, calcSecondsFromTime(day.workTime));
     });
     return workTime;
   }

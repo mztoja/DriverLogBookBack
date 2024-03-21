@@ -1,11 +1,6 @@
 import { userBidTypeEnum } from '../types';
 
-export const calculateSalary = (
-  bid: number,
-  type: userBidTypeEnum,
-  distance: number,
-  days: number,
-): number => {
+export const calculateSalary = (bid: number, type: userBidTypeEnum, distance: number, days: number): number => {
   switch (type) {
     case userBidTypeEnum.notSpecified:
       return 0;
