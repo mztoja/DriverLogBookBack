@@ -221,6 +221,19 @@ export class ToursService {
     });
   }
 
+  async getAllDaysTime(id: number): Promise<string> {
+    const tour = await this.tourRepository.findOne({ where: { id } });
+    if (!tour) {
+      throw new NotFoundException();
+    }
+    const startLog = await this.logsService.find(tour.startLogId);
+    const stopLog = await this.logsService.find(tour.stopLogId);
+    if (!startLog || !stopLog) {
+      throw new NotFoundException();
+    }
+    return subtractDatesToTime(stopLog.date, startLog.date);
+  }
+
   async createSettlement(userId: string, data: TourCreateSettlementDto, toursData: TourEntity[]): Promise<TourMEntity> {
     let driveTime = '00:00:00';
     let workTime = '00:00:00';
@@ -361,6 +374,12 @@ export class ToursService {
     await this.tourRepository.update({ id: tour.id }, { totalRefuel });
   }
 
+  async addOutgoings(id: number, userId: string, value: number): Promise<void> {
+    const tour = await this.tourRepository.findOne({ where: { id, userId } });
+    const outgoings = Number(tour.outgoings) + Number(value);
+    await this.tourRepository.update({ id: tour.id }, { outgoings });
+  }
+
   async addLoading(id: number, userId: string, weight: number): Promise<void> {
     const tour = await this.tourRepository.findOne({ where: { id, userId } });
     const numberOfLoads = Number(tour.numberOfLoads) + 1;
@@ -370,8 +389,14 @@ export class ToursService {
 
   async calcDaysOnDuty(id: number, userId: string): Promise<void> {
     const tour = await this.tourRepository.findOne({ where: { id, userId } });
+    let daysOffDuty = 0;
     const daysOnDuty = calculateDaysFromTime(tour.workTime);
-    await this.tourRepository.update({ id, userId }, { daysOnDuty });
+    if (tour.status !== tourStatusEnum.started) {
+      const allDaysTime = await this.getAllDaysTime(tour.id);
+      const allDays = calculateDaysFromTime(allDaysTime);
+      daysOffDuty = allDays - daysOnDuty;
+    }
+    await this.tourRepository.update({ id, userId }, { daysOnDuty, daysOffDuty });
   }
 
   async calcExpectedSalary(id: number, userId: string, userBid: number, userBidType: userBidTypeEnum): Promise<void> {
