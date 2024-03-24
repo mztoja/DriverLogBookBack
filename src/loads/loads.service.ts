@@ -1,14 +1,15 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { LoadCreateDto } from './dto/load-create.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LoadEntity } from './load.entity';
 import { LogsService } from '../logs/logs.service';
-import { LoadInterface, logTypeEnum, loadStatusEnum, LoadListResponse } from '../types';
+import { LoadInterface, logTypeEnum, loadStatusEnum, LoadListResponse, tourStatusEnum } from '../types';
 import { PlaceEntity } from '../places/place.entity';
 import { LoadUnloadDto } from './dto/load-unload.dto';
 import { LogEntity } from '../logs/log.entity';
 import { ToursService } from '../tours/tours.service';
+import { LoadEditDto } from './dto/load-edit.dto';
 
 @Injectable()
 export class LoadsService {
@@ -22,6 +23,15 @@ export class LoadsService {
     return await this.loadRepository.findOne({
       where: { id },
     });
+  }
+
+  async calcAvgWeightByTour(tourId: number, userId: string): Promise<number> {
+    const loads = await this.loadRepository.find({ where: { tourId, userId } });
+    if (loads.length === 0) {
+      return 0;
+    }
+    const sum = loads.reduce((sum, load) => sum + Number(load.weight), 0);
+    return Math.round(sum / loads.length);
   }
 
   async getLastLoad(userId: string): Promise<LoadEntity> {
@@ -114,6 +124,36 @@ export class LoadsService {
       weight: data.weight,
       unloadingLogId: 0,
     });
+  }
+
+  async edit(userId: string, data: LoadEditDto, simpleEdit?: boolean): Promise<LoadInterface> {
+    const oldLoad = await this.loadRepository.findOne({ where: { id: data.id, userId } });
+    if (!oldLoad) {
+      throw new BadRequestException();
+    }
+    const tour = await this.toursService.getRouteById(userId, oldLoad.tourId);
+    if (!tour || tour.status === tourStatusEnum.settled) {
+      throw new BadRequestException('cannotEditSettledTourData');
+    }
+    await this.logsService.edit(data.loadingLogData, userId);
+    if (!simpleEdit) {
+      await this.logsService.edit(data.unloadingLogData, userId);
+    }
+    await this.loadRepository.update(
+      { id: oldLoad.id },
+      {
+        distance: data.distance,
+        description: data.description,
+        quantity: data.quantity,
+        receiverId: data.receiverId,
+        senderId: data.senderId,
+        reference: data.reference,
+        vehicle: data.vehicle,
+        weight: data.weight,
+      },
+    );
+    await this.toursService.editAvgWeight(oldLoad.tourId, await this.calcAvgWeightByTour(oldLoad.tourId, userId));
+    return await this.findById(oldLoad.id);
   }
 
   async unload(data: LoadUnloadDto, load: LoadEntity, tourId: number, userId: string): Promise<LoadEntity> {

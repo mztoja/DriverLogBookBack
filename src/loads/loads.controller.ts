@@ -5,6 +5,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
   UnauthorizedException,
   UseGuards,
@@ -24,6 +25,8 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ActiveRouteGuard } from '../guards/active-route.guard';
 import { ActiveRouteObj } from '../decorators/active-route-obj.decorator';
 import { TourEntity } from '../tours/tour.entity';
+import { LoadEditDto } from './dto/load-edit.dto';
+import { LoadSimpleEditDto } from './dto/load-simple-edit.dto';
 
 @Controller('loads')
 export class LoadsController {
@@ -117,5 +120,17 @@ export class LoadsController {
   @Get('getByTourId/:tourId')
   async getByTourId(@Param('tourId') tourId: string, @UserObj() user: UserEntity): Promise<LoadInterface[]> {
     return await this.loadsService.getLoadsByTour(user.id, Number(tourId));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('edit')
+  async edit(@Body() data: LoadEditDto, @UserObj() user: UserEntity): Promise<LoadInterface> {
+    return await this.loadsService.edit(user.id, data);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('simpleEdit')
+  async simpleEdit(@Body() data: LoadSimpleEditDto, @UserObj() user: UserEntity): Promise<LoadInterface> {
+    return await this.loadsService.edit(user.id, data, true);
   }
 }

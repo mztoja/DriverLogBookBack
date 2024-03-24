@@ -387,6 +387,10 @@ export class ToursService {
     await this.tourRepository.update({ id: tour.id }, { numberOfLoads, avgWeight });
   }
 
+  async editAvgWeight(id: number, value: number): Promise<void> {
+    await this.tourRepository.update({ id }, { avgWeight: value });
+  }
+
   async calcDaysOnDuty(id: number, userId: string): Promise<void> {
     const tour = await this.tourRepository.findOne({ where: { id, userId } });
     let daysOffDuty = 0;

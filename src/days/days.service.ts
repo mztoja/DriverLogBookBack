@@ -128,6 +128,7 @@ export class DaysService {
       {
         cardState: data.cardState,
         doubleCrew: data.doubleCrew,
+        distance: data.distance,
       },
     );
     const newDay = await this.dayRepository.findOne({ where: { id: oldDay.id } });
@@ -188,8 +189,8 @@ export class DaysService {
         await this.dayRepository.update({ id: olderDay.id }, { breakTime });
       }
     }
-    const distance: number = Number(newDay.distance) - Number(oldDay.distance);
-    await this.toursService.addDistance(tour.id, user.id, distance);
+    // const distance: number = Number(newDay.distance) - Number(oldDay.distance);
+    // await this.toursService.addDistance(tour.id, user.id, distance);
     const fuel: number = Number(newDay.fuelBurned) - Number(oldDay.fuelBurned);
     const driveTime: number = calcSecondsFromTime(newDay.driveTime) - calcSecondsFromTime(oldDay.driveTime);
     const driveTime2: number = calcSecondsFromTime(newDay.driveTime2) - calcSecondsFromTime(oldDay.driveTime2);
