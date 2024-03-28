@@ -53,6 +53,27 @@ export class LoadsService {
       .getMany();
   }
 
+  async getByLogId(userId: string, logId: number): Promise<LoadInterface> {
+    return await this.loadRepository
+      .createQueryBuilder('load')
+      .where('load.userId = :userId AND (load.loadingLogId = :logId OR load.unloadingLogId = :logId)', {
+        userId,
+        logId,
+      })
+      .leftJoinAndMapOne('load.loadingLogData', LogEntity, 'loadingLog', 'load.loadingLogId = loadingLog.id')
+      .leftJoinAndMapOne('loadingLog.placeData', PlaceEntity, 'loadingPlace', 'loadingLog.placeId = loadingPlace.id')
+      .leftJoinAndMapOne('load.unloadingLogData', LogEntity, 'unloadingLog', 'load.unloadingLogId = unloadingLog.id')
+      .leftJoinAndMapOne(
+        'unloadingLog.placeData',
+        PlaceEntity,
+        'unloadingPlace',
+        'unloadingLog.placeId = unloadingPlace.id',
+      )
+      .leftJoinAndMapOne('load.senderData', PlaceEntity, 'senderLog', 'load.senderId = senderLog.id')
+      .leftJoinAndMapOne('load.receiverData', PlaceEntity, 'receiverLog', 'load.receiverId = receiverLog.id')
+      .getOne();
+  }
+
   async getNotUnloadedLoadsMass(userId: string): Promise<number> {
     const result = await this.loadRepository
       .createQueryBuilder('load')

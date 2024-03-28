@@ -123,6 +123,12 @@ export class LoadsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('getByLogId/:logId')
+  async getByLogId(@Param('logId') logId: string, @UserObj() user: UserEntity): Promise<LoadInterface> {
+    return await this.loadsService.getByLogId(user.id, Number(logId));
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Patch('edit')
   async edit(@Body() data: LoadEditDto, @UserObj() user: UserEntity): Promise<LoadInterface> {
     return await this.loadsService.edit(user.id, data);

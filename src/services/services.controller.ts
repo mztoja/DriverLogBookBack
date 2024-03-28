@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { UserObj } from '../decorators/user-obj.decorator';
@@ -9,6 +9,7 @@ import { ActiveRouteGuard } from '../guards/active-route.guard';
 import { ActiveRouteObj } from '../decorators/active-route-obj.decorator';
 import { TourEntity } from '../tours/tour.entity';
 import { ServiceInterface } from '../types';
+import { EditServiceDto } from './dto/edit-service.dto';
 
 @Controller('services')
 export class ServicesController {
@@ -28,5 +29,11 @@ export class ServicesController {
   @Get('getByVehicleId/:id')
   async getByVehicleId(@UserObj() user: UserEntity, @Param('id') id: string): Promise<ServiceInterface[]> {
     return await this.servicesService.getByVehicleId(Number(id), user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('edit')
+  async edit(@Body() data: EditServiceDto, @UserObj() user: UserEntity): Promise<ServiceEntity> {
+    return await this.servicesService.edit(user.id, data);
   }
 }

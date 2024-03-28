@@ -18,7 +18,7 @@ import { DayFinishDto } from './dto/day-finish.dto';
 import { subtractDatesToTime } from '../utlis/subtractDatesToTime';
 import { PlaceEntity } from '../places/place.entity';
 import { LogEntity } from '../logs/log.entity';
-import { DayListResponse } from '../types/day/DayListResponse';
+import { DayListResponse } from '../types';
 import { addTimes } from '../utlis/addTimes';
 import { ToursService } from '../tours/tours.service';
 import { DayEditDto } from './dto/day-edit.dto';
@@ -98,7 +98,7 @@ export class DaysService {
           activeDay.cardState === dayCardStateEnum.inserted && data.cardTakeOut
             ? dayCardStateEnum.takenOut
             : activeDay.cardState,
-        distance: stopLog.odometer - startLog.odometer,
+        //distance: stopLog.odometer - startLog.odometer,
         driveTime: data.driveTime,
         driveTime2: data.driveTime2,
         stopLogId: stopLog.id,

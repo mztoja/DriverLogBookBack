@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, In, Not, Repository } from 'typeorm';
 import { LogEntity } from './log.entity';
 import { LogCreateDto } from './dto/log-create.dto';
 import { LogInterface, LogListResponse, logTypeEnum, tourStatusEnum } from '../types';
@@ -30,10 +30,30 @@ export class LogsService {
     await this.usersService.countryEnter(userId, data.country);
 
     if (data.odometer > 0) {
-      const lastLog = await this.logRepository.findOne({
-        where: { userId, tourId },
-        order: { id: 'DESC' },
-      });
+      const findLastLog = async () => {
+        const ignoredIds: number[] = [];
+        let foundLog = await this.logRepository.findOne({
+          where: { userId, tourId },
+          order: { id: 'DESC' },
+        });
+        while (
+          foundLog &&
+          foundLog.odometer === 0 &&
+          (foundLog.type === logTypeEnum.maintenance || foundLog.type === logTypeEnum.service)
+        ) {
+          ignoredIds.push(foundLog.id);
+          foundLog = await this.logRepository.findOne({
+            where: {
+              userId,
+              tourId,
+              id: Not(In(ignoredIds)),
+            },
+            order: { id: 'DESC' },
+          });
+        }
+        return foundLog ? foundLog : null;
+      };
+      const lastLog = await findLastLog();
       if (lastLog) {
         const addDistance = Number(data.odometer) - Number(lastLog.odometer);
         await this.toursService.addDistance(tourId, userId, addDistance);
