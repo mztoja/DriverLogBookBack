@@ -85,11 +85,10 @@ export class DaysService {
       action: data.action,
     };
     const stopLog = await this.logsService.create(logData, activeDay.userId, activeDay.tourId, logTypeEnum.days);
+    const distance = (await this.dayRepository.findOne({ where: { id: activeDay.id } })).distance;
     const workTime = subtractDatesToTime(stopLog.date, startLog.date);
     const fuelBurned =
-      userFuelConType === userFuelContypeEnum.per100km
-        ? ((stopLog.odometer - startLog.odometer) / 100) * data.fuelCombustion
-        : data.fuelCombustion;
+      userFuelConType === userFuelContypeEnum.per100km ? (distance / 100) * data.fuelCombustion : data.fuelCombustion;
     await this.dayRepository.update(
       { id: activeDay.id },
       {

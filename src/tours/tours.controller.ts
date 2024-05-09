@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ToursService } from './tours.service';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
@@ -12,6 +12,8 @@ import { TourGetNumbersDto } from './dto/tour-get-numbers.dto';
 import { TourInterface, TourNumbersInterface } from '../types';
 import { TourCreateSettlementDto } from './dto/tour-create-settlement.dto';
 import { TourMEntity } from './tourM.entity';
+import { TourEditDto } from './dto/tour-edit.dto';
+import { TourSimpleEditDto } from './dto/tour-simple-edit.dto';
 
 @Controller('tours')
 export class ToursController {
@@ -116,5 +118,16 @@ export class ToursController {
   @Get('getSettlements/:year')
   async getSettlements(@Param('year') year: string, @UserObj() user: UserEntity): Promise<TourMEntity[]> {
     return await this.toursService.getSettlements(user.id, year);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('edit')
+  async edit(@Body() data: TourEditDto, @UserObj() user: UserEntity): Promise<TourEntity> {
+    return await this.toursService.edit(data, user);
+  }
+  @UseGuards(JwtAuthGuard)
+  @Patch('simpleEdit')
+  async simpleEdit(@Body() data: TourSimpleEditDto, @UserObj() user: UserEntity): Promise<TourEntity> {
+    return await this.toursService.simpleEdit(data, user);
   }
 }

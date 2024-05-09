@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Like, Not, Repository } from 'typeorm';
 import { TourEntity } from './tour.entity';
@@ -20,6 +20,8 @@ import { TourMEntity } from './tourM.entity';
 import { TourCreateSettlementDto } from './dto/tour-create-settlement.dto';
 import { addTimes } from '../utlis/addTimes';
 import { calcSecondsFromTime } from '../utlis/calcSecondsFromTime';
+import { TourEditDto } from './dto/tour-edit.dto';
+import { TourSimpleEditDto } from './dto/tour-simple-edit.dto';
 
 @Injectable()
 export class ToursService {
@@ -407,5 +409,86 @@ export class ToursService {
     const tour = await this.tourRepository.findOne({ where: { id, userId } });
     const expectedSalary = calculateSalary(userBid, userBidType, tour.distance, tour.daysOnDuty + tour.daysOffDuty);
     await this.tourRepository.update({ id: tour.id }, { expectedSalary });
+  }
+
+  async edit(data: TourEditDto, user: UserEntity): Promise<TourEntity> {
+    const oldTour = await this.tourRepository.findOne({ where: { id: data.id, userId: user.id } });
+    if (!oldTour) {
+      throw new BadRequestException();
+    }
+    if (oldTour.status === tourStatusEnum.settled) {
+      throw new BadRequestException('cannotEditSettledTourData');
+    }
+
+    const oldStartLog = await this.logsService.find(data.startData.id);
+    const oldStopLog = data.stopData.id === 0 ? null : await this.logsService.find(data.stopData.id);
+    const startLog = await this.logsService.edit(data.startData, user.id);
+    const stopLog = data.stopData.id === 0 ? null : await this.logsService.edit(data.stopData, user.id);
+    let distance: number = Number(oldTour.distance);
+    if (oldStartLog) {
+      const diff = Number(oldStartLog.odometer - startLog.odometer);
+      distance = distance + diff;
+    }
+    if (oldStopLog) {
+      const diff = Number(oldStopLog.odometer - stopLog.odometer);
+      distance = distance - diff;
+    }
+
+    const allDaysTime = subtractDatesToTime(stopLog.date, startLog.date);
+    const allDays = calculateDaysFromTime(allDaysTime);
+    const daysOnDuty = calculateDaysFromTime(oldTour.workTime);
+    const daysOffDuty = allDays - daysOnDuty;
+
+    const fuelStartDiff = oldTour.fuelStateAfter - Number(data.fuelStateAfter);
+    const fuelStopDiff = oldTour.fuelStateBefore - Number(data.fuelStateBefore);
+    const fuel = oldTour.burnedFuelReal - fuelStartDiff + fuelStopDiff;
+    await this.tourRepository.update(
+      { id: oldTour.id },
+      {
+        burnedFuelReal: fuel,
+        daysOffDuty,
+        distance,
+        fuelStateBefore: data.fuelStateBefore,
+        fuelStateAfter: data.fuelStateAfter,
+        expectedSalary: data.expectedSalary,
+        currency: data.currency,
+        tourNr: data.tourNr,
+      },
+    );
+    return await this.tourRepository.findOne({ where: { id: oldTour.id } });
+  }
+
+  async simpleEdit(data: TourSimpleEditDto, user: UserEntity): Promise<TourEntity> {
+    const oldTour = await this.tourRepository.findOne({ where: { id: data.id, userId: user.id } });
+    if (!oldTour) {
+      throw new BadRequestException();
+    }
+    if (oldTour.status === tourStatusEnum.settled) {
+      throw new BadRequestException('cannotEditSettledTourData');
+    }
+
+    const oldStartLog = await this.logsService.find(data.startData.id);
+    const startLog = await this.logsService.edit(data.startData, user.id);
+    let distance: number = Number(oldTour.distance);
+    if (oldStartLog) {
+      const diff = Number(oldStartLog.odometer - startLog.odometer);
+      distance = distance + diff;
+    }
+
+    const fuelStartDiff = oldTour.fuelStateAfter - Number(data.fuelStateAfter);
+    const fuel = oldTour.burnedFuelReal - fuelStartDiff;
+    await this.tourRepository.update(
+      { id: oldTour.id },
+      {
+        burnedFuelReal: fuel,
+        distance,
+        fuelStateBefore: data.fuelStateBefore,
+        fuelStateAfter: data.fuelStateAfter,
+        expectedSalary: data.expectedSalary,
+        currency: data.currency,
+        tourNr: data.tourNr,
+      },
+    );
+    return await this.tourRepository.findOne({ where: { id: oldTour.id } });
   }
 }
