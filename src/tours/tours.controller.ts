@@ -9,7 +9,7 @@ import { DaysService } from '../days/days.service';
 import { TourEntity } from './tour.entity';
 import { LoadsService } from '../loads/loads.service';
 import { TourGetNumbersDto } from './dto/tour-get-numbers.dto';
-import { TourInterface, TourNumbersInterface } from '../types';
+import { TourInterface, TourNumbersInterface, TourSettleGeneratorInterface } from '../types';
 import { TourCreateSettlementDto } from './dto/tour-create-settlement.dto';
 import { TourMEntity } from './tourM.entity';
 import { TourEditDto } from './dto/tour-edit.dto';
@@ -129,5 +129,20 @@ export class ToursController {
   @Patch('simpleEdit')
   async simpleEdit(@Body() data: TourSimpleEditDto, @UserObj() user: UserEntity): Promise<TourEntity> {
     return await this.toursService.simpleEdit(data, user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('getRouteByLogId/:id')
+  async getRouteByLogId(@Param('id') id: string, @UserObj() user: UserEntity): Promise<TourInterface> {
+    return await this.toursService.getRouteByLogId(user.id, Number(id));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('generator/:id')
+  async generateTourSettlement(
+    @Param('id') id: string,
+    @UserObj() user: UserEntity,
+  ): Promise<TourSettleGeneratorInterface> {
+    return await this.toursService.generateTourSettlement(user, Number(id));
   }
 }

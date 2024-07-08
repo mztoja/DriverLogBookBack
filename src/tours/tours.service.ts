@@ -2,7 +2,15 @@ import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException 
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Like, Not, Repository } from 'typeorm';
 import { TourEntity } from './tour.entity';
-import { logTypeEnum, TourInterface, TourNumbersInterface, tourStatusEnum, userBidTypeEnum } from '../types';
+import {
+  logTypeEnum,
+  TourInterface,
+  TourNumbersInterface,
+  TourSettleGeneratorInterface,
+  tourStatusEnum,
+  userBidTypeEnum,
+  userLangEnum,
+} from '../types';
 import { TourCreateDto } from './dto/tour-create.dto';
 import { LogsService } from '../logs/logs.service';
 import { LogCreateDto } from '../logs/dto/log-create.dto';
@@ -22,6 +30,7 @@ import { addTimes } from '../utlis/addTimes';
 import { calcSecondsFromTime } from '../utlis/calcSecondsFromTime';
 import { TourEditDto } from './dto/tour-edit.dto';
 import { TourSimpleEditDto } from './dto/tour-simple-edit.dto';
+import { PlacesService } from '../places/places.service';
 
 @Injectable()
 export class ToursService {
@@ -32,6 +41,7 @@ export class ToursService {
     @Inject(forwardRef(() => DaysService)) private daysService: DaysService,
     @Inject(forwardRef(() => FinancesService)) private financesService: FinancesService,
     @Inject(forwardRef(() => LoadsService)) private loadsService: LoadsService,
+    @Inject(forwardRef(() => PlacesService)) private placesService: PlacesService,
   ) {}
 
   async create(data: TourCreateDto, userId: string): Promise<TourEntity> {
@@ -490,5 +500,356 @@ export class ToursService {
       },
     );
     return await this.tourRepository.findOne({ where: { id: oldTour.id } });
+  }
+
+  async getRouteByLogId(userId: string, logId: number): Promise<TourInterface> {
+    const tour = await this.tourRepository
+      .createQueryBuilder('tour')
+      .where('(tour.userId = :userId) AND (tour.startLogId = :logId OR tour.stopLogId = :logId)', {
+        userId,
+        logId,
+      })
+      .leftJoinAndMapOne('tour.startLogData', LogEntity, 'startLogData', 'tour.startLogId = startLogData.id')
+      .leftJoinAndMapOne(
+        'startLogData.placeData',
+        PlaceEntity,
+        'startPlaceData',
+        'startLogData.placeId = startPlaceData.id',
+      )
+      .leftJoinAndMapOne('tour.stopLogData', LogEntity, 'stopLogData', 'tour.stopLogId = stopLogData.id')
+      .leftJoinAndMapOne(
+        'stopLogData.placeData',
+        PlaceEntity,
+        'stopPlaceData',
+        'stopLogData.placeId = stopPlaceData.id',
+      )
+      .getOne();
+    if (!tour) {
+      throw new NotFoundException('');
+    }
+    return tour;
+  }
+
+  async generateTourSettlement(user: UserEntity, id: number): Promise<TourSettleGeneratorInterface> {
+    const tour = await this.tourRepository.findOne({ where: { id } });
+    const startLog = await this.logsService.find(tour.startLogId);
+    const stopLog = await this.logsService.find(tour.stopLogId);
+    const emptyTxt = user.lang === userLangEnum.pl ? 'na pusto' : 'empty';
+
+    const formatDate = (dateString: string): string => {
+      if (dateString.length < 1) return '';
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}.${month}.${year}`;
+    };
+    const formatTime = (dateString: string): string => {
+      if (dateString.length < 1) return '';
+      const date = new Date(dateString);
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    };
+    const separator = (number: number): string => {
+      return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    };
+
+    if (!tour || !startLog || !stopLog) {
+      throw new NotFoundException('');
+    }
+
+    const trailers = await this.logsService.getTrailersListByTourId(user.id, tour.id);
+    const loads = await this.loadsService.getLoadsByTour(user.id, tour.id);
+    const destinationCitySet = new Set<string>();
+    const base = await this.placesService.getOne(user.id, user.companyId);
+    loads.map((load) => {
+      if (load.unloadingLogData.placeData) {
+        const entry =
+          load.unloadingLogData.placeData.country === base.country
+            ? load.unloadingLogData.placeData.city
+            : `${load.unloadingLogData.placeData.city}(${load.unloadingLogData.placeData.country})`;
+        if (!destinationCitySet.has(entry)) {
+          destinationCitySet.add(entry);
+        }
+      }
+    });
+
+    for (const item of destinationCitySet) {
+      if (item.includes(base.city)) {
+        destinationCitySet.delete(item);
+      }
+    }
+
+    const refNumbersSet = new Set<string>();
+    loads.map((load) => {
+      if (load.reference.length > 1) {
+        refNumbersSet.add(load.reference);
+      }
+    });
+    const refNumbers = Array.from(refNumbersSet).reverse();
+
+    const outgoings = await this.financesService.getByTourId(user.id, tour.id);
+    const expencesSet = new Set<string>();
+    const refuelSet = new Set<string[]>();
+    outgoings.map((v) => {
+      if (v.quantity <= 1) {
+        if (v.foreignAmount > 0) {
+          expencesSet.add(
+            `${v.itemDescription} - ${v.foreignAmount + v.foreignCurrency} / ${v.amount + v.currency} (${v.payment})`,
+          );
+        } else {
+          expencesSet.add(`${v.itemDescription} - ${v.amount + v.currency} (${v.payment})`);
+        }
+      }
+      if ((v.logData) && (v.logData.type === logTypeEnum.refuelDiesel)) {
+        refuelSet.add([
+          v.logData.date,
+          v.logData.placeData
+            ? v.logData.placeData.city
+            : v.logData.place === null ? '' : v.logData.place,
+          v.logData.odometer.toString(),
+          v.quantity.toString(),
+        ]);
+      }
+    });
+    const expences = Array.from(expencesSet).reverse();
+    const refuels = Array.from(refuelSet).reverse();
+
+    const logs = await this.logsService.getByTourId(user.id, id);
+    interface Route {
+      startCity: string;
+      startDate: string;
+      startOdometer: number;
+      borderDate: string;
+      borderPlace: string;
+      stopCity: string;
+      stopDate: string;
+      stopOdometer: number;
+      customer: string;
+    }
+    const routesSet = new Set<Route>();
+    let nextRoute: Route | null = null;
+    const startData = logs.find((v) => v.id === startLog.id);
+    nextRoute = {
+      startCity: startData.placeData ? `${startData.placeData.city} (${startData.placeData.name})` : startData.place,
+      startDate: startData.date,
+      startOdometer: startData.odometer,
+      borderDate: '',
+      borderPlace: '',
+      stopCity: '',
+      stopDate: '',
+      stopOdometer: 0,
+      customer: emptyTxt,
+    };
+    const routeLogs = logs.filter((v) => v.type === logTypeEnum.finishLoading || v.type === logTypeEnum.finishUnloading).reverse();
+    routeLogs.map((log, index) => {
+      nextRoute.stopCity = log.placeData ? `${log.placeData.city} (${log.placeData.name})` : log.place;
+      nextRoute.stopDate = log.date;
+      nextRoute.stopOdometer = log.odometer;
+      //const arriveEnum = log.type === logTypeEnum.finishLoading ? logTypeEnum.arrivedToLoading : logTypeEnum.arrivedToUnloading;
+      if (routeLogs[index - 1]) {
+        nextRoute.customer = routeLogs[index - 1].type === logTypeEnum.finishLoading ? user.customer : emptyTxt;
+        const borders = logs.filter((v) => v.type === logTypeEnum.crossBorder && v.id > routeLogs[index - 1].id && v.id < log.id);
+        if (borders.length > 0) {
+          const borderEntry = borders.find((v) => v.action.includes(user.country));
+          nextRoute.borderDate = borderEntry.date ? borderEntry.date : '';
+          nextRoute.borderPlace = borderEntry.place ? borderEntry.place : '';
+        }
+        const arrive = logs.find((v) => ((v.type === logTypeEnum.arrivedToLoading || v.type === logTypeEnum.arrivedToUnloading) && v.id > routeLogs[index - 1].id && v.id < log.id));
+        if (arrive) {
+          nextRoute.stopCity = arrive.placeData ? `${arrive.placeData.city} (${arrive.placeData.name})` : arrive.place;
+          nextRoute.stopDate = arrive.date;
+          nextRoute.stopOdometer = arrive.odometer;
+        }
+      } else {
+        const borders = logs.filter((v) => v.type === logTypeEnum.crossBorder && v.id > startData.id && v.id < log.id);
+        if (borders.length > 0) {
+          const borderEntry = borders.find((v) => v.action.includes(user.country));
+          nextRoute.borderDate = borderEntry.date ? borderEntry.date : '';
+          nextRoute.borderPlace = borderEntry.place ? borderEntry.place : '';
+        }
+        const arrive = logs.find((v) => ((v.type === logTypeEnum.arrivedToLoading || v.type === logTypeEnum.arrivedToUnloading) && v.id > startData.id && v.id < log.id));
+        if (arrive) {
+          nextRoute.stopCity = arrive.placeData ? `${arrive.placeData.city} (${arrive.placeData.name})` : arrive.place;
+          nextRoute.stopDate = arrive.date;
+          nextRoute.stopOdometer = arrive.odometer;
+        }
+      }
+      routesSet.add(nextRoute);
+      nextRoute = {
+        startCity: log.placeData ? `${log.placeData.city} (${log.placeData.name})` : log.place,
+        startDate: log.date,
+        startOdometer: log.odometer,
+        borderDate: '',
+        borderPlace: '',
+        stopCity: '',
+        stopDate: '',
+        stopOdometer: 0,
+        customer: '',
+      };
+    });
+    const stopData = logs.find((v) => v.id === stopLog.id);
+    nextRoute.stopCity = stopData.placeData ? `${stopData.placeData.city} (${stopData.placeData.name})` : stopData.place;
+    nextRoute.stopDate = stopData.date;
+    nextRoute.stopOdometer = stopData.odometer;
+    if (routeLogs[routeLogs.length - 1]) {
+      nextRoute.customer = routeLogs[routeLogs.length - 1].type === logTypeEnum.finishLoading ? user.customer : emptyTxt;
+    }
+    routesSet.add(nextRoute);
+    const routes = Array.from(routesSet);
+
+
+    return {
+      name1: `${user.firstName} ${user.lastName}`,
+      name2: '',
+      destonationCity: `${Array.from(destinationCitySet).reverse().join(', ')}`,
+      truck: `${tour.truck}`,
+      trailer: `${trailers.reverse().join(', ')}`,
+      departureDate: `${formatDate(startLog.date)}`,
+      returnDate: `${formatDate(stopLog.date)}`,
+      departureTime: `${formatTime(startLog.date)}`,
+      returnTime: `${formatTime(stopLog.date)}`,
+      departureOdometer: `${separator(startLog.odometer)}`,
+      returnOdometer: `${separator(stopLog.odometer)}`,
+      distance: `${separator(tour.distance)} km`,
+      sci1: `${refNumbers[0] ?? ''}`,
+      sci2: `${refNumbers[1] ?? ''}`,
+      sci3: `${refNumbers[2] ?? ''}`,
+      sci4: `${refNumbers[3] ?? ''}`,
+      sci5: `${refNumbers[4] ?? ''}`,
+      sci6: `${refNumbers[5] ?? ''}`,
+      fuelConsumption: `${((Number(tour.burnedFuelReal) / Number(tour.distance)) * 100).toFixed(1)}`,
+      fuelBefore: `${separator(tour.fuelStateBefore)}`,
+      fuelAfter: `${separator(tour.fuelStateAfter)}`,
+      routeNr: `${tour.tourNr}`,
+      fuel1Date: `${refuels[0] ? formatDate(refuels[0][0]) : ''}`,
+      fuel1City: `${refuels[0] ? refuels[0][1] : ''}`,
+      fuel1Odometer: `${refuels[0] ? separator(Number(refuels[0][2])) + ' km' : ''}`,
+      fuel1Value: `${refuels[0] ? Number(refuels[0][3]).toFixed(2) + ' l' : ''}`,
+      fuel2Date: `${refuels[1] ? formatDate(refuels[1][0]) : ''}`,
+      fuel2City: `${refuels[1] ? refuels[1][1] : ''}`,
+      fuel2Odometer: `${refuels[1] ? separator(Number(refuels[1][2])) + ' km' : ''}`,
+      fuel2Value: `${refuels[1] ? Number(refuels[1][3]).toFixed(2) + ' l' : ''}`,
+      fuel3Date: `${refuels[2] ? formatDate(refuels[2][0]) : ''}`,
+      fuel3City: `${refuels[2] ? refuels[2][1] : ''}`,
+      fuel3Odometer: `${refuels[2] ? separator(Number(refuels[2][2])) + ' km' : ''}`,
+      fuel3Value: `${refuels[2] ? Number(refuels[2][3]).toFixed(2) + ' l' : ''}`,
+      expence1: `${expences[0] ?? ''}`,
+      expence2: `${expences[1] ?? ''}`,
+      expence3: `${expences[2] ?? ''}`,
+      expence4: `${expences[3] ?? ''}`,
+      expence5: `${expences[4] ?? ''}`,
+      expence6: `${expences[5] ?? ''}`,
+      expence7: `${expences[6] ?? ''}`,
+      expence8: `${expences[7] ?? ''}`,
+      expence9: `${expences[8] ?? ''}`,
+      expence10: `${expences[9] ?? ''}`,
+      expence11: `${expences[10] ?? ''}`,
+      expence12: `${expences[11] ?? ''}`,
+      startCity1: `${routes[0] ? routes[0].startCity : ''}`,
+      startCity2: `${routes[1] ? routes[1].startCity : ''}`,
+      startCity3: `${routes[2] ? routes[2].startCity : ''}`,
+      startCity4: `${routes[3] ? routes[3].startCity : ''}`,
+      startCity5: `${routes[4] ? routes[4].startCity : ''}`,
+      startCity6: `${routes[5] ? routes[5].startCity : ''}`,
+      startCity7: `${routes[6] ? routes[6].startCity : ''}`,
+      startCity8: `${routes[7] ? routes[7].startCity : ''}`,
+      startCity9: `${routes[8] ? routes[8].startCity : ''}`,
+      startCity10: `${routes[9] ? routes[9].startCity : ''}`,
+      stopCity1: `${routes[0] ? routes[0].stopCity : ''}`,
+      stopCity2: `${routes[1] ? routes[1].stopCity : ''}`,
+      stopCity3: `${routes[2] ? routes[2].stopCity : ''}`,
+      stopCity4: `${routes[3] ? routes[3].stopCity : ''}`,
+      stopCity5: `${routes[4] ? routes[4].stopCity : ''}`,
+      stopCity6: `${routes[5] ? routes[5].stopCity : ''}`,
+      stopCity7: `${routes[6] ? routes[6].stopCity : ''}`,
+      stopCity8: `${routes[7] ? routes[7].stopCity : ''}`,
+      stopCity9: `${routes[8] ? routes[8].stopCity : ''}`,
+      stopCity10: `${routes[9] ? routes[9].stopCity : ''}`,
+      distance1: `${routes[0] ? separator(routes[0].stopOdometer - routes[0].startOdometer) : ''}`,
+      distance2: `${routes[1] ? separator(routes[1].stopOdometer - routes[1].startOdometer) : ''}`,
+      distance3: `${routes[2] ? separator(routes[2].stopOdometer - routes[2].startOdometer) : ''}`,
+      distance4: `${routes[3] ? separator(routes[3].stopOdometer - routes[3].startOdometer) : ''}`,
+      distance5: `${routes[4] ? separator(routes[4].stopOdometer - routes[4].startOdometer) : ''}`,
+      distance6: `${routes[5] ? separator(routes[5].stopOdometer - routes[5].startOdometer) : ''}`,
+      distance7: `${routes[6] ? separator(routes[6].stopOdometer - routes[6].startOdometer) : ''}`,
+      distance8: `${routes[7] ? separator(routes[7].stopOdometer - routes[7].startOdometer) : ''}`,
+      distance9: `${routes[8] ? separator(routes[8].stopOdometer - routes[8].startOdometer) : ''}`,
+      distance10: `${routes[9] ? separator(routes[9].stopOdometer - routes[9].startOdometer) : ''}`,
+      customer1: `${routes[0] ? routes[0].customer : ''}`,
+      customer2: `${routes[1] ? routes[1].customer : ''}`,
+      customer3: `${routes[2] ? routes[2].customer : ''}`,
+      customer4: `${routes[3] ? routes[3].customer : ''}`,
+      customer5: `${routes[4] ? routes[4].customer : ''}`,
+      customer6: `${routes[5] ? routes[5].customer : ''}`,
+      customer7: `${routes[6] ? routes[6].customer : ''}`,
+      customer8: `${routes[7] ? routes[7].customer : ''}`,
+      customer9: `${routes[8] ? routes[8].customer : ''}`,
+      customer10: `${routes[9] ? routes[9].customer : ''}`,
+      startData1: `${routes[0] ? formatDate(routes[0].startDate) + ' ' + formatTime(routes[0].startDate) : ''}`,
+      startOdometer1: `${routes[0] ? separator(routes[0].startOdometer) + ' km' : ''}`,
+      borderDate1: `${routes[0] ? formatDate(routes[0].borderDate) + ' ' + formatTime(routes[0].borderDate) : ''}`,
+      borderPlace1: `${routes[0] ? routes[0].borderPlace : ''}`,
+      stopData1: `${routes[0] ? formatDate(routes[0].stopDate) + ' ' + formatTime(routes[0].stopDate) : ''}`,
+      stopOdometer1: `${routes[0] ? separator(routes[0].stopOdometer) + ' km' : ''}`,
+      startData2: `${routes[1] ? formatDate(routes[1].startDate) + ' ' + formatTime(routes[1].startDate) : ''}`,
+      startOdometer2: `${routes[1] ? separator(routes[1].startOdometer) + ' km' : ''}`,
+      borderDate2: `${routes[1] ? formatDate(routes[1].borderDate) + ' ' + formatTime(routes[1].borderDate) : ''}`,
+      borderPlace2: `${routes[1] ? routes[1].borderPlace : ''}`,
+      stopData2: `${routes[1] ? formatDate(routes[1].stopDate) + ' ' + formatTime(routes[1].stopDate) : ''}`,
+      stopOdometer2: `${routes[1] ? separator(routes[1].stopOdometer) + ' km' : ''}`,
+      startData3: `${routes[2] ? formatDate(routes[2].startDate) + ' ' + formatTime(routes[2].startDate) : ''}`,
+      startOdometer3: `${routes[2] ? separator(routes[2].startOdometer) + ' km' : ''}`,
+      borderDate3: `${routes[2] ? formatDate(routes[2].borderDate) + ' ' + formatTime(routes[2].borderDate) : ''}`,
+      borderPlace3: `${routes[2] ? routes[2].borderPlace : ''}`,
+      stopData3: `${routes[2] ? formatDate(routes[2].stopDate) + ' ' + formatTime(routes[2].stopDate) : ''}`,
+      stopOdometer3: `${routes[2] ? separator(routes[2].stopOdometer) + ' km' : ''}`,
+      startData4: `${routes[3] ? formatDate(routes[3].startDate) + ' ' + formatTime(routes[3].startDate) : ''}`,
+      startOdometer4: `${routes[3] ? separator(routes[3].startOdometer) + ' km' : ''}`,
+      borderDate4: `${routes[3] ? formatDate(routes[3].borderDate) + ' ' + formatTime(routes[3].borderDate) : ''}`,
+      borderPlace4: `${routes[3] ? routes[3].borderPlace : ''}`,
+      stopData4: `${routes[3] ? formatDate(routes[3].stopDate) + ' ' + formatTime(routes[3].stopDate) : ''}`,
+      stopOdometer4: `${routes[3] ? separator(routes[3].stopOdometer) + ' km' : ''}`,
+      startData5: `${routes[4] ? formatDate(routes[4].startDate) + ' ' + formatTime(routes[4].startDate) : ''}`,
+      startOdometer5: `${routes[4] ? separator(routes[4].startOdometer) + ' km' : ''}`,
+      borderDate5: `${routes[4] ? formatDate(routes[4].borderDate) + ' ' + formatTime(routes[4].borderDate) : ''}`,
+      borderPlace5: `${routes[4] ? routes[4].borderPlace : ''}`,
+      stopData5: `${routes[4] ? formatDate(routes[4].stopDate) + ' ' + formatTime(routes[4].stopDate) : ''}`,
+      stopOdometer5: `${routes[4] ? separator(routes[4].stopOdometer) + ' km' : ''}`,
+      startData6: `${routes[5] ? formatDate(routes[5].startDate) + ' ' + formatTime(routes[5].startDate) : ''}`,
+      startOdometer6: `${routes[5] ? separator(routes[5].startOdometer) + ' km' : ''}`,
+      borderDate6: `${routes[5] ? formatDate(routes[5].borderDate) + ' ' + formatTime(routes[5].borderDate) : ''}`,
+      borderPlace6: `${routes[5] ? routes[5].borderPlace : ''}`,
+      stopData6: `${routes[5] ? formatDate(routes[5].stopDate) + ' ' + formatTime(routes[5].stopDate) : ''}`,
+      stopOdometer6: `${routes[5] ? separator(routes[5].stopOdometer) + ' km' : ''}`,
+      startData7: `${routes[6] ? formatDate(routes[6].startDate) + ' ' + formatTime(routes[6].startDate) : ''}`,
+      startOdometer7: `${routes[6] ? separator(routes[6].startOdometer) + ' km' : ''}`,
+      borderDate7: `${routes[6] ? formatDate(routes[6].borderDate) + ' ' + formatTime(routes[6].borderDate) : ''}`,
+      borderPlace7: `${routes[6] ? routes[6].borderPlace : ''}`,
+      stopData7: `${routes[6] ? formatDate(routes[6].stopDate) + ' ' + formatTime(routes[6].stopDate) : ''}`,
+      stopOdometer7: `${routes[6] ? separator(routes[6].stopOdometer) + ' km' : ''}`,
+      startData8: `${routes[7] ? formatDate(routes[7].startDate) + ' ' + formatTime(routes[7].startDate) : ''}`,
+      startOdometer8: `${routes[7] ? separator(routes[7].startOdometer) + ' km' : ''}`,
+      borderDate8: `${routes[7] ? formatDate(routes[7].borderDate) + ' ' + formatTime(routes[7].borderDate) : ''}`,
+      borderPlace8: `${routes[7] ? routes[7].borderPlace : ''}`,
+      stopData8: `${routes[7] ? formatDate(routes[7].stopDate) + ' ' + formatTime(routes[7].stopDate) : ''}`,
+      stopOdometer8: `${routes[7] ? separator(routes[7].stopOdometer) + ' km' : ''}`,
+      startData9: `${routes[8] ? formatDate(routes[8].startDate) + ' ' + formatTime(routes[8].startDate) : ''}`,
+      startOdometer9: `${routes[8] ? separator(routes[8].startOdometer) + ' km' : ''}`,
+      borderDate9: `${routes[8] ? formatDate(routes[8].borderDate) + ' ' + formatTime(routes[8].borderDate) : ''}`,
+      borderPlace9: `${routes[8] ? routes[8].borderPlace : ''}`,
+      stopData9: `${routes[8] ? formatDate(routes[8].stopDate) + ' ' + formatTime(routes[8].stopDate) : ''}`,
+      stopOdometer9: `${routes[8] ? separator(routes[8].stopOdometer) + ' km' : ''}`,
+      startData10: `${routes[9] ? formatDate(routes[9].startDate) + ' ' + formatTime(routes[9].startDate) : ''}`,
+      startOdometer10: `${routes[9] ? separator(routes[9].startOdometer) + ' km' : ''}`,
+      borderDate10: `${routes[9] ? formatDate(routes[9].borderDate) + ' ' + formatTime(routes[9].borderDate) : ''}`,
+      borderPlace10: `${routes[9] ? routes[9].borderPlace : ''}`,
+      stopData10: `${routes[9] ? formatDate(routes[9].stopDate) + ' ' + formatTime(routes[9].stopDate) : ''}`,
+      stopOdometer10: `${routes[9] ? separator(routes[9].stopOdometer) + ' km' : ''}`,
+      refueled: `${separator(tour.totalRefuel)}`,
+      stops: '',
+      other: '',
+    };
   }
 }

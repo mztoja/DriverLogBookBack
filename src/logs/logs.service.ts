@@ -160,4 +160,21 @@ export class LogsService {
       .orderBy('log.id', 'DESC')
       .getOne();
   }
+
+  async getTrailersListByTourId(userId: string, tourId: number): Promise<string[]> {
+    const logList = await this.getByTourId(userId, tourId);
+    const trailersSet = new Set<string>();
+
+    logList
+      .filter((log) => log.type === logTypeEnum.detachTrailer || log.type === logTypeEnum.attachTrailer)
+      .forEach((log) => {
+        const trailer = log.action.split(':');
+        const trailerNumber = trailer[1].trim();
+
+        if (!trailersSet.has(trailerNumber)) {
+          trailersSet.add(trailerNumber);
+        }
+      });
+    return Array.from(trailersSet);
+  }
 }

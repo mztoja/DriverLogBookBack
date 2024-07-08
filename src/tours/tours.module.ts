@@ -8,6 +8,7 @@ import { DaysModule } from '../days/days.module';
 import { FinancesModule } from '../finances/finances.module';
 import { LoadsModule } from '../loads/loads.module';
 import { TourMEntity } from './tourM.entity';
+import { PlacesModule } from '../places/places.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { TourMEntity } from './tourM.entity';
     forwardRef(() => DaysModule),
     forwardRef(() => FinancesModule),
     forwardRef(() => LoadsModule),
+    forwardRef(() => PlacesModule),
   ],
   providers: [ToursService],
   controllers: [ToursController],

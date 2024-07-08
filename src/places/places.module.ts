@@ -6,10 +6,7 @@ import { PlaceEntity } from './place.entity';
 import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([PlaceEntity]),
-    forwardRef(() => UsersModule),
-  ],
+  imports: [TypeOrmModule.forFeature([PlaceEntity]), forwardRef(() => UsersModule)],
   providers: [PlacesService],
   controllers: [PlacesController],
   exports: [PlacesService],
