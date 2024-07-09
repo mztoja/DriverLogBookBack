@@ -13,5 +13,8 @@
   mailerAuthPassword: 'password',
   mailerHost: 'localhost',
   mailerSmtpPort: 2500,
+  secure: true, // if you use https then change it to TRUE !!!!
+  domain: 'localhost',
+  httpOnly: true,
 };
  **/

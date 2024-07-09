@@ -66,9 +66,9 @@ export class AuthService {
 
       return res
         .cookie('jwt', token.accessToken, {
-          secure: false, // if you use https then change it to TRUE !!!!
-          domain: 'localhost',
-          httpOnly: true,
+          secure: config.secure,
+          domain: config.domain,
+          httpOnly: config.httpOnly,
         })
         .json(user);
     } catch {
@@ -83,9 +83,9 @@ export class AuthService {
       });
       return res
         .clearCookie('jwt', {
-          secure: false, // if you use https then change it to TRUE !!!!
-          domain: 'localhost',
-          httpOnly: true,
+          secure: config.secure,
+          domain: config.domain,
+          httpOnly: config.httpOnly,
         })
         .json({ message: 'logged out' });
     } catch {
