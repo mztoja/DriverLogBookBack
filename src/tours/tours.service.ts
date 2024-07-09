@@ -852,4 +852,21 @@ export class ToursService {
       other: '',
     };
   }
+
+  async deleteMonthlySettlement(userId: string, id: number): Promise<TourEntity[]> {
+    const settlement = await this.tourMRepository.findOne({ where: { id, userId } });
+    if (!settlement) {
+      throw new NotFoundException();
+    }
+    const routes: TourEntity[] = [];
+    for (const tourId of settlement.toursId) {
+      const route = await this.tourRepository.findOne({ where: { id: tourId, userId } });
+      if (route) {
+        await this.tourRepository.update({ id: route.id }, { salary: 0, status: tourStatusEnum.finished });
+        routes.push(route);
+      }
+    }
+    await this.tourMRepository.delete({ id: settlement.id });
+    return routes;
+  }
 }

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Delete, UseGuards } from '@nestjs/common';
 import { ToursService } from './tours.service';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
@@ -14,6 +14,7 @@ import { TourCreateSettlementDto } from './dto/tour-create-settlement.dto';
 import { TourMEntity } from './tourM.entity';
 import { TourEditDto } from './dto/tour-edit.dto';
 import { TourSimpleEditDto } from './dto/tour-simple-edit.dto';
+import { tourDeleteSettlementDto } from './dto/tour-delete-settlement.dto';
 
 @Controller('tours')
 export class ToursController {
@@ -144,5 +145,12 @@ export class ToursController {
     @UserObj() user: UserEntity,
   ): Promise<TourSettleGeneratorInterface> {
     return await this.toursService.generateTourSettlement(user, Number(id));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('deleteMonthlySettlement')
+  async deleteMonthlySettlement(@Body() data: tourDeleteSettlementDto, @UserObj() user: UserEntity): Promise<TourEntity[]> {
+    console.log('start');
+    return await this.toursService.deleteMonthlySettlement(user.id, data.id);
   }
 }
