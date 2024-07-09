@@ -6,12 +6,14 @@ import { UserEntity } from './user.entity';
 import { PlacesModule } from '../places/places.module';
 import { JwtStrategy } from '../auth/jwt.strategy';
 import { ToursModule } from '../tours/tours.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserEntity]),
     forwardRef(() => PlacesModule),
     forwardRef(() => ToursModule),
+    forwardRef(() => MailModule),
   ],
   providers: [UsersService, JwtStrategy],
   controllers: [UsersController],

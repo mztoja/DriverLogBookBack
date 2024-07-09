@@ -9,5 +9,9 @@
   secretJwt: 'typeSecretString!',
   hmacKey: 'typeSalt!',
   tokenExpirationTime: 60 * 60 * 24,
+  mailerAuthUser: 'admin',
+  mailerAuthPassword: 'password',
+  mailerHost: 'localhost',
+  mailerSmtpPort: 2500,
 };
  **/

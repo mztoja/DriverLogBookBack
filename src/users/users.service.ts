@@ -7,10 +7,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from './user.entity';
 import { UserRegisterDto } from './dto/user-register.dto';
-import { placeTypeEnum } from '../types';
+import { placeTypeEnum, userLangEnum } from '../types';
 import { PlacesService } from '../places/places.service';
 import { hashPwd } from '../utlis/hash-pwd';
 import { UserUpdateDto } from './dto/user-update.dto';
+import { MailService } from '../mail/mail.service';
+import { registeredEmailTemplate } from '../templates/email/registered';
 
 @Injectable()
 export class UsersService {
@@ -19,6 +21,8 @@ export class UsersService {
     private userRepository: Repository<UserEntity>,
     @Inject(PlacesService)
     private placesService: PlacesService,
+    @Inject(MailService)
+    private mailService: MailService,
   ) {}
 
   async register(
@@ -63,6 +67,14 @@ export class UsersService {
         { companyId: place.id },
       );
       delete user.pwdHash;
+      await this.mailService.sendMail(
+        user.email,
+        user.lang === userLangEnum.pl
+          ? 'Rejestracja zakończona pomyślnie!'
+          : 'Registration completed successfully!'
+        ,
+        registeredEmailTemplate(user.lang)
+      );
       return user;
     } catch {
       throw new InternalServerErrorException();
