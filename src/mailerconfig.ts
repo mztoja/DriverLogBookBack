@@ -4,7 +4,7 @@ import { config } from './config/config';
 export = {
     transport: `smtp://${config.mailerAuthUser}:${config.mailerAuthPassword}@${config.mailerHost}:${config.mailerSmtpPort}`,
     defaults: {
-        from: 'app@test.com',
+        from: config.mailerFrom,
     },
     template: {
         dir: './templates/email',
