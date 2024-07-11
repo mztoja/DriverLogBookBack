@@ -114,7 +114,7 @@ export class ToursService {
         // totalRefuel,
         fuelStateAfter: data.fuelStateAfter,
         //burnedFuelComp,
-        burnedFuelReal: Number(activeRoute.fuelStateBefore) + totalRefuel - data.fuelStateAfter,
+        burnedFuelReal: Number(activeRoute.fuelStateBefore) + Number(totalRefuel) - Number(data.fuelStateAfter),
         // numberOfLoads: loads.length,
         // avgWeight: isNaN(Math.round(loadsWeight / loads.length)) ? 0 : Math.round(loadsWeight / loads.length),
         expectedSalary,
@@ -565,6 +565,8 @@ export class ToursService {
     const base = await this.placesService.getOne(user.id, user.companyId);
     loads.map((load) => {
       if (load.unloadingLogData.placeData) {
+        console.log(load.unloadingLogData.placeData);
+        console.log(base);
         const entry =
           load.unloadingLogData.placeData.country === base.country
             ? load.unloadingLogData.placeData.city

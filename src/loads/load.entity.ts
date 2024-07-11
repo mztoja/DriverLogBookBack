@@ -18,22 +18,22 @@ export class LoadEntity implements LoadInterface {
   loadNr: number;
   @Column({ type: 'int' })
   loadingLogId: number;
-  @Column({ type: 'int' })
+  @Column({ type: 'int', default: '0' })
   unloadingLogId: number;
-  @Column({ type: 'int' })
+  @Column({ type: 'int', default: '0' })
   senderId: number;
-  @Column({ type: 'int' })
+  @Column({ type: 'int', default: '0' })
   receiverId: number;
-  @Column({ type: 'varchar', length: 10 })
+  @Column({ type: 'varchar', length: 10, default: '' })
   vehicle: string;
-  @Column({ type: 'varchar', length: 30 })
+  @Column({ type: 'varchar', length: 30, default: '' })
   description: string;
-  @Column({ type: 'varchar', length: 30 })
+  @Column({ type: 'varchar', length: 30, default: '' })
   quantity: string;
-  @Column({ type: 'varchar', length: 20 })
+  @Column({ type: 'varchar', length: 20, default: '' })
   reference: string;
   @Column({ type: 'int' })
   weight: number;
-  @Column({ type: 'int' })
+  @Column({ type: 'int', default: '0' })
   distance: number;
 }
