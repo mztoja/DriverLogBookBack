@@ -24,6 +24,6 @@ export interface UserInterface {
   fuelConType: userFuelContypeEnum;
   fuelConDisp: userFuelConDispEnum;
   country: string;
-  gen: string;
+  notes: string | null;
   tourGenerator: string;
 }
