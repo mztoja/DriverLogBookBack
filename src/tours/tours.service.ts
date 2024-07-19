@@ -567,8 +567,6 @@ export class ToursService {
     const base = await this.placesService.getOne(user.id, user.companyId);
     loads.map((load) => {
       if (load.unloadingLogData.placeData) {
-        console.log(load.unloadingLogData.placeData);
-        console.log(base);
         const entry =
           load.unloadingLogData.placeData.country === base.country
             ? load.unloadingLogData.placeData.city
@@ -657,8 +655,13 @@ export class ToursService {
         const borders = logs.filter((v) => v.type === logTypeEnum.crossBorder && v.id > routeLogs[index - 1].id && v.id < log.id);
         if (borders.length > 0) {
           const borderEntry = borders.find((v) => v.action.includes(user.country));
+          if (borderEntry) {
           nextRoute.borderDate = borderEntry.date ? borderEntry.date : '';
           nextRoute.borderPlace = borderEntry.place ? borderEntry.place : '';
+          } else {
+            nextRoute.borderDate = borders[0].date ? borders[0].date : '';
+            nextRoute.borderPlace = borders[0].place ? borders[0].place : '';
+          }
         }
         const arrive = logs.find((v) => ((v.type === logTypeEnum.arrivedToLoading || v.type === logTypeEnum.arrivedToUnloading) && v.id > routeLogs[index - 1].id && v.id < log.id));
         if (arrive) {
