@@ -395,7 +395,9 @@ export class ToursService {
   async addLoading(id: number, userId: string, weight: number): Promise<void> {
     const tour = await this.tourRepository.findOne({ where: { id, userId } });
     const numberOfLoads = Number(tour.numberOfLoads) + 1;
-    const avgWeight = Math.round((Number(tour.avgWeight) + Number(weight)) / 2);
+    const avgWeight = numberOfLoads === 1
+      ? Math.round(Number(weight))
+      : Math.round((Number(tour.avgWeight) + Number(weight)) / 2);
     await this.tourRepository.update({ id: tour.id }, { numberOfLoads, avgWeight });
   }
 
