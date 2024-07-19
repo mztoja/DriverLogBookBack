@@ -83,7 +83,7 @@ export class LoadsService {
         status: loadStatusEnum.notUnloaded,
       })
       .getRawOne();
-    return result ? result.sum : 0;
+    return result?.sum ?? '0';
   }
 
   async getLoadsByTour(userId: string, tourId: number): Promise<LoadInterface[]> {
@@ -100,7 +100,7 @@ export class LoadsService {
         'unloadingLog.placeData',
         PlaceEntity,
         'unloadingPlace',
-        'unloadingLog.placeId = unloadingPlace.id',
+        'unloadingLog.placeId = unloadingPlace.id'
       )
       .leftJoinAndMapOne('load.senderData', PlaceEntity, 'senderLog', 'load.senderId = senderLog.id')
       .leftJoinAndMapOne('load.receiverData', PlaceEntity, 'receiverLog', 'load.receiverId = receiverLog.id')
