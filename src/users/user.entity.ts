@@ -62,8 +62,8 @@ export class UserEntity implements UserInterface {
   @Column({ type: 'varchar', length: 3, nullable: true, default: null })
   country: string;
 
-  @Column({ type: 'tinyint', nullable: true, default: null })
-  gen: string;
+  @Column({ type: 'text', nullable: true, default: null })
+  notes: string;
 
   @Column({ type: 'varchar', length: 10, nullable: true, default: null })
   tourGenerator: string;

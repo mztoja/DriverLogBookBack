@@ -18,6 +18,7 @@ import { UserMarkDepartDto } from './dto/user-mark-depart.dto';
 import { UserUpdateDto } from './dto/user-update.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ToursService } from '../tours/tours.service';
+import { UserEditNotesDto } from './dto/user-edit-notes.dto';
 
 @Controller('users')
 export class UsersController {
@@ -45,6 +46,15 @@ export class UsersController {
     @UserObj() user: UserEntity,
   ) {
     return await this.usersService.markDepart(user.id, body.placeId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('editNotes')
+  async editNotes(
+    @Body() body: UserEditNotesDto,
+    @UserObj() user: UserEntity,
+  ): Promise<UserEntity> {
+    return await this.usersService.editNotes(user.id, body.notes);
   }
 
   @UseGuards(JwtAuthGuard)

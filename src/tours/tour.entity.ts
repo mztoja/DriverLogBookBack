@@ -19,38 +19,38 @@ export class TourEntity implements TourInterface {
   trailer: string | null;
   @Column({ type: 'int' })
   startLogId: number;
-  @Column({ type: 'int' })
+  @Column({ type: 'int', default: '0' })
   stopLogId: number;
-  @Column({ type: 'time' })
+  @Column({ type: 'time', default: '0' })
   driveTime: string;
-  @Column({ type: 'time' })
+  @Column({ type: 'time', default: '0' })
   workTime: string;
-  @Column({ type: 'decimal', precision: 7 })
+  @Column({ type: 'decimal', precision: 7, default: '0' })
   distance: number;
-  @Column({ type: 'tinyint' })
+  @Column({ type: 'tinyint', default: '0' })
   daysOnDuty: number;
-  @Column({ type: 'tinyint' })
+  @Column({ type: 'tinyint', default: '0' })
   daysOffDuty: number;
-  @Column({ type: 'decimal', precision: 7, scale: 2 })
+  @Column({ type: 'decimal', precision: 7, scale: 2, default: '0' })
   totalRefuel: number;
   @Column({ type: 'decimal', precision: 5 })
   fuelStateBefore: number;
-  @Column({ type: 'decimal', precision: 5 })
+  @Column({ type: 'decimal', precision: 5, default: '0' })
   fuelStateAfter: number;
-  @Column({ type: 'decimal', precision: 7, scale: 2 })
+  @Column({ type: 'decimal', precision: 7, scale: 2, default: '0' })
   burnedFuelComp: number;
-  @Column({ type: 'decimal', precision: 7, scale: 2 })
+  @Column({ type: 'decimal', precision: 7, scale: 2, default: '0' })
   burnedFuelReal: number;
-  @Column({ type: 'tinyint' })
+  @Column({ type: 'tinyint', default: '0' })
   numberOfLoads: number;
-  @Column({ type: 'decimal', precision: 5 })
+  @Column({ type: 'decimal', precision: 5, default: '0' })
   avgWeight: number;
-  @Column({ type: 'decimal', precision: 8, scale: 2 })
+  @Column({ type: 'decimal', precision: 8, scale: 2, default: '0' })
   expectedSalary: number;
-  @Column({ type: 'decimal', precision: 8, scale: 2 })
+  @Column({ type: 'decimal', precision: 8, scale: 2, default: '0' })
   salary: number;
-  @Column({ type: 'decimal', precision: 8, scale: 2 })
+  @Column({ type: 'decimal', precision: 8, scale: 2, default: '0' })
   outgoings: number;
-  @Column({ type: 'varchar', length: 3 })
+  @Column({ type: 'varchar', length: 3, default: '' })
   currency: string;
 }

@@ -114,7 +114,7 @@ export class ToursService {
         // totalRefuel,
         fuelStateAfter: data.fuelStateAfter,
         //burnedFuelComp,
-        burnedFuelReal: Number(activeRoute.fuelStateBefore) + totalRefuel - data.fuelStateAfter,
+        burnedFuelReal: Number(activeRoute.fuelStateBefore) + Number(totalRefuel) - Number(data.fuelStateAfter),
         // numberOfLoads: loads.length,
         // avgWeight: isNaN(Math.round(loadsWeight / loads.length)) ? 0 : Math.round(loadsWeight / loads.length),
         expectedSalary,
@@ -395,7 +395,9 @@ export class ToursService {
   async addLoading(id: number, userId: string, weight: number): Promise<void> {
     const tour = await this.tourRepository.findOne({ where: { id, userId } });
     const numberOfLoads = Number(tour.numberOfLoads) + 1;
-    const avgWeight = Math.round((Number(tour.avgWeight) + Number(weight)) / 2);
+    const avgWeight = numberOfLoads === 1
+      ? Math.round(Number(weight))
+      : Math.round((Number(tour.avgWeight) + Number(weight)) / 2);
     await this.tourRepository.update({ id: tour.id }, { numberOfLoads, avgWeight });
   }
 
@@ -653,8 +655,13 @@ export class ToursService {
         const borders = logs.filter((v) => v.type === logTypeEnum.crossBorder && v.id > routeLogs[index - 1].id && v.id < log.id);
         if (borders.length > 0) {
           const borderEntry = borders.find((v) => v.action.includes(user.country));
+          if (borderEntry) {
           nextRoute.borderDate = borderEntry.date ? borderEntry.date : '';
           nextRoute.borderPlace = borderEntry.place ? borderEntry.place : '';
+          } else {
+            nextRoute.borderDate = borders[0].date ? borders[0].date : '';
+            nextRoute.borderPlace = borders[0].place ? borders[0].place : '';
+          }
         }
         const arrive = logs.find((v) => ((v.type === logTypeEnum.arrivedToLoading || v.type === logTypeEnum.arrivedToUnloading) && v.id > routeLogs[index - 1].id && v.id < log.id));
         if (arrive) {
