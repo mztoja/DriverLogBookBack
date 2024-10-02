@@ -87,9 +87,12 @@ export class LogsService {
     if (!tour || tour.status === tourStatusEnum.settled) {
       throw new BadRequestException('cannotEditSettledTourData');
     }
-    const distanceDiff: number = Number(data.odometer) - Number(old.odometer);
+    const lastLog = await this.getLastLog(userId);
+    if (lastLog && lastLog.id === old.id) {
+      const distanceDiff: number = Number(data.odometer) - Number(old.odometer);
     if (distanceDiff !== 0) {
       await this.toursService.addDistance(tour.id, userId, distanceDiff);
+    }
     }
     await this.logRepository.update(
       { id: old.id },
@@ -124,6 +127,7 @@ export class LogsService {
       .where('log.userId = :userId', { userId })
       .leftJoinAndMapOne('log.placeData', PlaceEntity, 'place', 'log.placeId = place.id')
       .orderBy('log.date', 'DESC')
+      .addOrderBy('log.id', 'DESC')
       .skip((Number(page) - 1) * Number(perPage))
       .take(Number(perPage));
     if (search) {
@@ -157,7 +161,8 @@ export class LogsService {
       .createQueryBuilder('log')
       .where('log.userId = :userId', { userId })
       .leftJoinAndMapOne('log.placeData', PlaceEntity, 'place', 'log.placeId = place.id')
-      .orderBy('log.id', 'DESC')
+      .orderBy('log.date', 'DESC')
+      .addOrderBy('log.id', 'DESC')
       .getOne();
   }
 
