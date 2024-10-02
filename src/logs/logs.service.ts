@@ -123,7 +123,7 @@ export class LogsService {
       .createQueryBuilder('log')
       .where('log.userId = :userId', { userId })
       .leftJoinAndMapOne('log.placeData', PlaceEntity, 'place', 'log.placeId = place.id')
-      .orderBy('log.id', 'DESC')
+      .orderBy('log.date', 'DESC')
       .skip((Number(page) - 1) * Number(perPage))
       .take(Number(perPage));
     if (search) {

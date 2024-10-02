@@ -119,7 +119,7 @@ export class FinancesService {
         userId,
       })
       .leftJoinAndMapOne('finance.logData', LogEntity, 'logId', 'finance.logId = logId.id')
-      .orderBy('finance.id', 'DESC')
+      .orderBy('logId.date', 'DESC')
       .skip((Number(page) - 1) * Number(perPage))
       .take(Number(perPage));
     const [items, totalItems] = await query.getManyAndCount();
