@@ -156,7 +156,6 @@ export class ToursController {
   @UseGuards(JwtAuthGuard)
   @Delete('deleteMonthlySettlement')
   async deleteMonthlySettlement(@Body() data: tourDeleteSettlementDto, @UserObj() user: UserEntity): Promise<TourEntity[]> {
-    console.log('start');
     return await this.toursService.deleteMonthlySettlement(user.id, data.id);
   }
 }

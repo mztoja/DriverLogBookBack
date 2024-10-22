@@ -64,7 +64,6 @@ export class AuthService {
 
       const token = this.createToken(await this.generateToken(user));
       const isMobileApp = req.headers['is-mobile-app'];
-      console.log(isMobileApp);
       if (isMobileApp) {
         return res.status(200).json({
           user,
