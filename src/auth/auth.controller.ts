@@ -27,8 +27,9 @@ export class AuthController {
   async login(
     @Body() loginDto: AuthLoginDto,
     @Res() res: Response,
+    @Req() req: Request,
   ): Promise<Omit<UserInterface, 'pwdHash'>> {
-    return this.authService.login(loginDto, res);
+    return this.authService.login(loginDto, res, req);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -3,7 +3,7 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { AuthLoginDto } from './dto/auth-login.dto';
 import { hashPwd } from '../utlis/hash-pwd';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -55,7 +55,7 @@ export class AuthService {
     return token;
   }
 
-  async login(loginDto: AuthLoginDto, res: Response): Promise<any> {
+  async login(loginDto: AuthLoginDto, res: Response, req: Request): Promise<any> {
     try {
       const user = await this.userRepository.findOne({
         where: { email: loginDto.email, pwdHash: hashPwd(loginDto.password) },
@@ -63,7 +63,14 @@ export class AuthService {
       delete user.pwdHash;
 
       const token = this.createToken(await this.generateToken(user));
-
+      const isMobileApp = req.headers['is-mobile-app'];
+      console.log(isMobileApp);
+      if (isMobileApp) {
+        return res.status(200).json({
+          user,
+          accessToken: token.accessToken,
+        });
+      } else {
       return res
         .cookie('jwt', token.accessToken, {
           secure: config.secure,
@@ -71,6 +78,7 @@ export class AuthService {
           httpOnly: config.httpOnly,
         })
         .json(user);
+      }
     } catch {
       throw new UnauthorizedException('invalidLoginData');
     }
