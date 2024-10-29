@@ -64,7 +64,7 @@ export class LogsController {
       throw new BadRequestException('countryConflict');
     }
     if (data.addNewBorder) {
-      await this.bordersService.create(data.place, user.country, data.country);
+      await this.bordersService.create(data.place, user.country, data.country, user.id);
     }
     delete data.addNewBorder;
     return await this.logsService.create(data, user.id, activeRoute.id, logTypeEnum.crossBorder);

@@ -87,13 +87,13 @@ export class LogsService {
     if (!tour || tour.status === tourStatusEnum.settled) {
       throw new BadRequestException('cannotEditSettledTourData');
     }
-    const lastLog = await this.getLastLog(userId);
-    if (lastLog && lastLog.id === old.id) {
+    // const lastLog = await this.getLastLog(userId);
+    // if (lastLog && lastLog.id === old.id) {
       const distanceDiff: number = Number(data.odometer) - Number(old.odometer);
-    if (distanceDiff !== 0) {
+    // if (distanceDiff !== 0) {
       await this.toursService.addDistance(tour.id, userId, distanceDiff);
-    }
-    }
+    // }
+    // }
     await this.logRepository.update(
       { id: old.id },
       {
