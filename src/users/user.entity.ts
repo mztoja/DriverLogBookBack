@@ -38,9 +38,6 @@ export class UserEntity implements UserInterface {
   @Column({ type: 'int', precision: 11 })
   companyId: number;
 
-  @Column({ type: 'varchar', length: 20, nullable: true, default: null })
-  customer: string;
-
   @Column({ type: 'tinyint', default: 0 })
   bidType: number;
 

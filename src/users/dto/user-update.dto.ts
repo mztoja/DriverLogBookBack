@@ -14,8 +14,6 @@ export class UserUpdateDto {
   lang: userLangEnum;
   @IsNumber()
   companyId: number;
-  @IsString()
-  customer: string;
   @IsNumber()
   bidType: userBidTypeEnum;
   @IsNumber()

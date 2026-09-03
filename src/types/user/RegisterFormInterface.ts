@@ -9,7 +9,6 @@ export interface RegisterFormInterface {
   companyPostCode: string;
   companyCity: string;
   country: string;
-  defaultCustomer: string;
   bidType: string;
   bid: string;
   currency: string;

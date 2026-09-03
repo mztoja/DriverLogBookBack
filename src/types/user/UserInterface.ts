@@ -16,7 +16,6 @@ export interface UserInterface {
   firstName: string;
   lastName: string;
   companyId: number;
-  customer: string;
   bidType: userBidTypeEnum;
   bid: number;
   currency: string;
