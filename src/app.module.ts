@@ -31,7 +31,7 @@ import { UserNotesModule } from './user-notes/user-notes.module';
       entities: ['dist/**/**.entity{.ts,.js}'],
       bigNumberStrings: false,
       logging: false,
-      synchronize: true,
+      synchronize: false,
     }),
     UsersModule,
     PlacesModule,
