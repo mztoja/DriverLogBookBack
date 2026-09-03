@@ -17,6 +17,7 @@ import { FinancesModule } from './finances/finances.module';
 import { ServicesModule } from './services/services.module';
 import { MailModule } from './mail/mail.module';
 import { ExpenseFavoritesModule } from './expense-favorites/expense-favorites.module';
+import { UserNotesModule } from './user-notes/user-notes.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { ExpenseFavoritesModule } from './expense-favorites/expense-favorites.mo
     ServicesModule,
     MailModule,
     ExpenseFavoritesModule,
+    UserNotesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

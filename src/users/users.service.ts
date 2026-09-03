@@ -92,11 +92,6 @@ export class UsersService {
     }
   }
 
-  async editNotes(userId: string, notes: string): Promise<UserEntity> {
-    await this.userRepository.update({ id: userId }, { notes });
-    return this.userRepository.findOne({ where: { id: userId } });
-  }
-
   async markArrival(userId: string, placeId: number) {
     try {
       await this.userRepository.update(
