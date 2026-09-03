@@ -16,6 +16,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { FinancesModule } from './finances/finances.module';
 import { ServicesModule } from './services/services.module';
 import { MailModule } from './mail/mail.module';
+import { ExpenseFavoritesModule } from './expense-favorites/expense-favorites.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { MailModule } from './mail/mail.module';
     FinancesModule,
     ServicesModule,
     MailModule,
+    ExpenseFavoritesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
