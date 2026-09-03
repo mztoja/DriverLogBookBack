@@ -14,6 +14,9 @@ export class UserEntity implements UserInterface {
   @Column({ nullable: true, default: null })
   currentTokenId: string | null;
 
+  @Column({ type: 'varchar', length: 36, nullable: true, default: null })
+  refreshToken: string | null;
+
   @Column({ type: 'tinyint', default: 0 })
   status: number;
 

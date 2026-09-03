@@ -8,6 +8,7 @@ export interface UserInterface {
   id: string;
   pwdHash: string;
   currentTokenId: string | null;
+  refreshToken?: string | null;
   status: userStatusEnum;
   lang: userLangEnum;
   registerAt: string;
