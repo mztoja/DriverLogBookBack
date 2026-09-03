@@ -144,6 +144,37 @@ export class LogsService {
     return { items, totalItems };
   }
 
+  async getByPlaceId(
+    userId: string,
+    placeId: number,
+    page: string,
+    perPage: string,
+    search: string | null,
+  ): Promise<LogListResponse> {
+    const query = await this.logRepository
+      .createQueryBuilder('log')
+      .where('log.userId = :userId AND log.placeId = :placeId', {
+        userId,
+        placeId,
+      })
+      .leftJoinAndMapOne('log.placeData', PlaceEntity, 'place', 'log.placeId = place.id')
+      .orderBy('log.date', 'DESC')
+      .addOrderBy('log.id', 'DESC')
+      .skip((Number(page) - 1) * Number(perPage))
+      .take(Number(perPage));
+    if (search) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('log.action LIKE :search', {
+            search: `%${search}%`,
+          }).orWhere('log.date LIKE :search', { search: `%${search}%` });
+        }),
+      );
+    }
+    const [items, totalItems] = await query.getManyAndCount();
+    return { items, totalItems };
+  }
+
   async getByTourId(userId: string, tourId: number): Promise<LogInterface[]> {
     return await this.logRepository
       .createQueryBuilder('log')

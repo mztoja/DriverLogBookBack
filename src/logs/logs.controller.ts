@@ -96,6 +96,22 @@ export class LogsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('getByPlaceId/:placeId/:page/:perPage/:search?')
+  async getByPlaceId(
+    @Param('placeId') placeId: string,
+    @Param('page') page: string,
+    @Param('perPage') perPage: string,
+    @Param('search') searchParam: string,
+    @UserObj() user: UserEntity,
+  ): Promise<LogListResponse> {
+    let search = searchParam || '';
+    if (search.length < 2) {
+      search = null;
+    }
+    return await this.logsService.getByPlaceId(user.id, Number(placeId), page, perPage, search);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('getByTourId/:tourId')
   async getByTourId(@Param('tourId') tourId: string, @UserObj() user: UserEntity): Promise<LogInterface[]> {
     return await this.logsService.getByTourId(user.id, Number(tourId));
