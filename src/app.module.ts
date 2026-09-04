@@ -15,7 +15,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
 import { PaymentsModule } from './payments/payments.module';
 import { FinancesModule } from './finances/finances.module';
 import { ServicesModule } from './services/services.module';
-import { MailModule } from './mail/mail.module';
+// import { MailModule } from './mail/mail.module';
 import { ExpenseFavoritesModule } from './expense-favorites/expense-favorites.module';
 import { UserNotesModule } from './user-notes/user-notes.module';
 
@@ -45,7 +45,6 @@ import { UserNotesModule } from './user-notes/user-notes.module';
     PaymentsModule,
     FinancesModule,
     ServicesModule,
-    MailModule,
     ExpenseFavoritesModule,
     UserNotesModule,
   ],
