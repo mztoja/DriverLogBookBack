@@ -8,6 +8,7 @@ export interface UserInterface {
   id: string;
   pwdHash: string;
   currentTokenId: string | null;
+  refreshToken?: string | null;
   status: userStatusEnum;
   lang: userLangEnum;
   registerAt: string;
@@ -15,7 +16,6 @@ export interface UserInterface {
   firstName: string;
   lastName: string;
   companyId: number;
-  customer: string;
   bidType: userBidTypeEnum;
   bid: number;
   currency: string;
@@ -24,6 +24,5 @@ export interface UserInterface {
   fuelConType: userFuelContypeEnum;
   fuelConDisp: userFuelConDispEnum;
   country: string;
-  gen: string;
   tourGenerator: string;
 }

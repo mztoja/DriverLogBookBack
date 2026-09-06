@@ -3,7 +3,6 @@ export interface UpdateFormInterface {
   lastName: string;
   lang: string;
   companyId: string;
-  customer: string;
   bidType: string;
   bid: string;
   currency: string;

@@ -17,8 +17,6 @@ export class UserRegisterDto {
   firstName: string;
   @IsString()
   lastName: string;
-  @IsString()
-  defaultCustomer: string;
   @IsNumber()
   bidType: userBidTypeEnum;
   @IsNumber()

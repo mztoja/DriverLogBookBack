@@ -87,10 +87,13 @@ export class LogsService {
     if (!tour || tour.status === tourStatusEnum.settled) {
       throw new BadRequestException('cannotEditSettledTourData');
     }
-    const distanceDiff: number = Number(data.odometer) - Number(old.odometer);
-    if (distanceDiff !== 0) {
+    // const lastLog = await this.getLastLog(userId);
+    // if (lastLog && lastLog.id === old.id) {
+      const distanceDiff: number = Number(data.odometer) - Number(old.odometer);
+    // if (distanceDiff !== 0) {
       await this.toursService.addDistance(tour.id, userId, distanceDiff);
-    }
+    // }
+    // }
     await this.logRepository.update(
       { id: old.id },
       {
@@ -123,7 +126,8 @@ export class LogsService {
       .createQueryBuilder('log')
       .where('log.userId = :userId', { userId })
       .leftJoinAndMapOne('log.placeData', PlaceEntity, 'place', 'log.placeId = place.id')
-      .orderBy('log.id', 'DESC')
+      .orderBy('log.date', 'DESC')
+      .addOrderBy('log.id', 'DESC')
       .skip((Number(page) - 1) * Number(perPage))
       .take(Number(perPage));
     if (search) {
@@ -136,6 +140,37 @@ export class LogsService {
       );
     }
     //const totalPages = Math.ceil(totalItems / Number(perPage));
+    const [items, totalItems] = await query.getManyAndCount();
+    return { items, totalItems };
+  }
+
+  async getByPlaceId(
+    userId: string,
+    placeId: number,
+    page: string,
+    perPage: string,
+    search: string | null,
+  ): Promise<LogListResponse> {
+    const query = await this.logRepository
+      .createQueryBuilder('log')
+      .where('log.userId = :userId AND log.placeId = :placeId', {
+        userId,
+        placeId,
+      })
+      .leftJoinAndMapOne('log.placeData', PlaceEntity, 'place', 'log.placeId = place.id')
+      .orderBy('log.date', 'DESC')
+      .addOrderBy('log.id', 'DESC')
+      .skip((Number(page) - 1) * Number(perPage))
+      .take(Number(perPage));
+    if (search) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('log.action LIKE :search', {
+            search: `%${search}%`,
+          }).orWhere('log.date LIKE :search', { search: `%${search}%` });
+        }),
+      );
+    }
     const [items, totalItems] = await query.getManyAndCount();
     return { items, totalItems };
   }
@@ -157,7 +192,8 @@ export class LogsService {
       .createQueryBuilder('log')
       .where('log.userId = :userId', { userId })
       .leftJoinAndMapOne('log.placeData', PlaceEntity, 'place', 'log.placeId = place.id')
-      .orderBy('log.id', 'DESC')
+      .orderBy('log.date', 'DESC')
+      .addOrderBy('log.id', 'DESC')
       .getOne();
   }
 

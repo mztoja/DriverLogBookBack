@@ -78,6 +78,12 @@ export class ToursController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('getPreviousRoute')
+  async getPreviousRoute(@UserObj() user: UserEntity): Promise<TourInterface> {
+    return await this.toursService.getPreviousRoute(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('getRouteById/:id')
   async getRouteById(@Param('id') id: string, @UserObj() user: UserEntity): Promise<TourInterface> {
     return await this.toursService.getRouteById(user.id, Number(id));
@@ -156,7 +162,6 @@ export class ToursController {
   @UseGuards(JwtAuthGuard)
   @Delete('deleteMonthlySettlement')
   async deleteMonthlySettlement(@Body() data: tourDeleteSettlementDto, @UserObj() user: UserEntity): Promise<TourEntity[]> {
-    console.log('start');
     return await this.toursService.deleteMonthlySettlement(user.id, data.id);
   }
 }

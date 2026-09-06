@@ -14,6 +14,9 @@ export class UserEntity implements UserInterface {
   @Column({ nullable: true, default: null })
   currentTokenId: string | null;
 
+  @Column({ type: 'varchar', length: 36, nullable: true, default: null })
+  refreshToken: string | null;
+
   @Column({ type: 'tinyint', default: 0 })
   status: number;
 
@@ -34,9 +37,6 @@ export class UserEntity implements UserInterface {
 
   @Column({ type: 'int', precision: 11 })
   companyId: number;
-
-  @Column({ type: 'varchar', length: 20, nullable: true, default: null })
-  customer: string;
 
   @Column({ type: 'tinyint', default: 0 })
   bidType: number;
@@ -61,9 +61,6 @@ export class UserEntity implements UserInterface {
 
   @Column({ type: 'varchar', length: 3, nullable: true, default: null })
   country: string;
-
-  @Column({ type: 'tinyint', nullable: true, default: null })
-  gen: string;
 
   @Column({ type: 'varchar', length: 10, nullable: true, default: null })
   tourGenerator: string;

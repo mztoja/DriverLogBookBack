@@ -27,14 +27,21 @@ export class AuthController {
   async login(
     @Body() loginDto: AuthLoginDto,
     @Res() res: Response,
+    @Req() req: Request,
   ): Promise<Omit<UserInterface, 'pwdHash'>> {
-    return this.authService.login(loginDto, res);
+    return this.authService.login(loginDto, res, req);
+  }
+
+  @Post('/refresh')
+  async refresh(@Req() req: Request, @Res() res: Response) {
+    return this.authService.refresh(req, res);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('/user')
   async user(@Req() request: Request, @UserObj() user: UserEntity) {
     delete user.pwdHash;
+    delete user.refreshToken;
     return user;
   }
 

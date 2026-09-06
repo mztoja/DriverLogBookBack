@@ -15,7 +15,9 @@ import { VehiclesModule } from './vehicles/vehicles.module';
 import { PaymentsModule } from './payments/payments.module';
 import { FinancesModule } from './finances/finances.module';
 import { ServicesModule } from './services/services.module';
-import { MailModule } from './mail/mail.module';
+// import { MailModule } from './mail/mail.module';
+import { ExpenseFavoritesModule } from './expense-favorites/expense-favorites.module';
+import { UserNotesModule } from './user-notes/user-notes.module';
 
 @Module({
   imports: [
@@ -29,7 +31,7 @@ import { MailModule } from './mail/mail.module';
       entities: ['dist/**/**.entity{.ts,.js}'],
       bigNumberStrings: false,
       logging: false,
-      synchronize: true,
+      synchronize: false,
     }),
     UsersModule,
     PlacesModule,
@@ -43,7 +45,8 @@ import { MailModule } from './mail/mail.module';
     PaymentsModule,
     FinancesModule,
     ServicesModule,
-    MailModule,
+    ExpenseFavoritesModule,
+    UserNotesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

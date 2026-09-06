@@ -117,7 +117,7 @@ export class ToursService {
         // totalRefuel,
         fuelStateAfter: data.fuelStateAfter,
         //burnedFuelComp,
-        burnedFuelReal: Number(activeRoute.fuelStateBefore) + totalRefuel - data.fuelStateAfter,
+        burnedFuelReal: Number(activeRoute.fuelStateBefore) + Number(totalRefuel) - Number(data.fuelStateAfter),
         // numberOfLoads: loads.length,
         // avgWeight: isNaN(Math.round(loadsWeight / loads.length)) ? 0 : Math.round(loadsWeight / loads.length),
         expectedSalary,
@@ -533,7 +533,9 @@ export class ToursService {
   async addLoading(id: number, userId: string, weight: number): Promise<void> {
     const tour = await this.tourRepository.findOne({ where: { id, userId } });
     const numberOfLoads = Number(tour.numberOfLoads) + 1;
-    const avgWeight = Math.round((Number(tour.avgWeight) + Number(weight)) / 2);
+    const avgWeight = numberOfLoads === 1
+      ? Math.round(Number(weight))
+      : Math.round((Number(tour.avgWeight) + Number(weight)) / 2);
     await this.tourRepository.update({ id: tour.id }, { numberOfLoads, avgWeight });
   }
 
@@ -727,34 +729,37 @@ export class ToursService {
     });
     const refNumbers = Array.from(refNumbersSet).reverse();
 
+    const logs = await this.logsService.getByTourId(user.id, id);
+
     const outgoings = await this.financesService.getByTourId(user.id, tour.id);
-    const expencesSet = new Set<string>();
+    const expences = [];
     const refuelSet = new Set<string[]>();
     outgoings.map((v) => {
       if (v.quantity <= 1) {
         if (v.foreignAmount > 0) {
-          expencesSet.add(
+          expences.push(
             `${v.itemDescription} - ${v.foreignAmount + v.foreignCurrency} / ${v.amount + v.currency} (${v.payment})`,
           );
         } else {
-          expencesSet.add(`${v.itemDescription} - ${v.amount + v.currency} (${v.payment})`);
+          expences.push(`${v.itemDescription} - ${v.amount + v.currency} (${v.payment})`);
         }
       }
       if ((v.logData) && (v.logData.type === logTypeEnum.refuelDiesel)) {
+        // finances.getByTourId nie dołącza logData.placeData – nazwę miejsca bierzemy z `logs`
+        // (tam placeData jest zjoinowane). Format: „Miejscowość - Nazwa".
+        const refuelLog = logs.find((l) => l.id === v.logData.id);
+        const placeData = refuelLog ? refuelLog.placeData : null;
         refuelSet.add([
           v.logData.date,
-          v.logData.placeData
-            ? v.logData.placeData.city
+          placeData
+            ? `${placeData.city} (${placeData.name})`
             : v.logData.place === null ? '' : v.logData.place,
           v.logData.odometer.toString(),
           v.quantity.toString(),
         ]);
       }
     });
-    const expences = Array.from(expencesSet).reverse();
     const refuels = Array.from(refuelSet).reverse();
-
-    const logs = await this.logsService.getByTourId(user.id, id);
     interface Route {
       startCity: string;
       startDate: string;
@@ -787,12 +792,24 @@ export class ToursService {
       nextRoute.stopOdometer = log.odometer;
       //const arriveEnum = log.type === logTypeEnum.finishLoading ? logTypeEnum.arrivedToLoading : logTypeEnum.arrivedToUnloading;
       if (routeLogs[index - 1]) {
-        nextRoute.customer = routeLogs[index - 1].type === logTypeEnum.finishLoading ? user.customer : emptyTxt;
+        if (routeLogs[index - 1].type === logTypeEnum.finishLoading) {
+          const loadedHere = loads.filter((l) => l.loadingLogId === routeLogs[index - 1].id);
+          nextRoute.customer = loadedHere.length
+            ? loadedHere.map((l) => l.description).join(', ')
+            : emptyTxt;
+        } else {
+          nextRoute.customer = emptyTxt;
+        }
         const borders = logs.filter((v) => v.type === logTypeEnum.crossBorder && v.id > routeLogs[index - 1].id && v.id < log.id);
         if (borders.length > 0) {
           const borderEntry = borders.find((v) => v.action.includes(user.country));
+          if (borderEntry) {
           nextRoute.borderDate = borderEntry.date ? borderEntry.date : '';
           nextRoute.borderPlace = borderEntry.place ? borderEntry.place : '';
+          } else {
+            nextRoute.borderDate = borders[0].date ? borders[0].date : '';
+            nextRoute.borderPlace = borders[0].place ? borders[0].place : '';
+          }
         }
         const arrive = logs.find((v) => ((v.type === logTypeEnum.arrivedToLoading || v.type === logTypeEnum.arrivedToUnloading) && v.id > routeLogs[index - 1].id && v.id < log.id));
         if (arrive) {
@@ -831,11 +848,35 @@ export class ToursService {
     nextRoute.stopCity = stopData.placeData ? `${stopData.placeData.city} (${stopData.placeData.name})` : stopData.place;
     nextRoute.stopDate = stopData.date;
     nextRoute.stopOdometer = stopData.odometer;
+    // Ostatni odcinek (od ostatniego załadunku/rozładunku – lub od startu trasy, gdy jechano bez ładunku –
+    // do końca trasy) też musi mieć wyszukane przejście granicy.
+    const finalLowerId = routeLogs.length ? routeLogs[routeLogs.length - 1].id : startData.id;
+    const finalBorders = logs.filter(
+      (v) => v.type === logTypeEnum.crossBorder && v.id > finalLowerId && v.id < stopLog.id,
+    );
+    if (finalBorders.length > 0) {
+      const borderEntry = finalBorders.find((v) => v.action.includes(user.country));
+      const chosen = borderEntry ? borderEntry : finalBorders[0];
+      nextRoute.borderDate = chosen.date ? chosen.date : '';
+      nextRoute.borderPlace = chosen.place ? chosen.place : '';
+    }
     if (routeLogs[routeLogs.length - 1]) {
-      nextRoute.customer = routeLogs[routeLogs.length - 1].type === logTypeEnum.finishLoading ? user.customer : emptyTxt;
+      const lastRouteLog = routeLogs[routeLogs.length - 1];
+      if (lastRouteLog.type === logTypeEnum.finishLoading) {
+        const loadedHere = loads.filter((l) => l.loadingLogId === lastRouteLog.id);
+        nextRoute.customer = loadedHere.length
+          ? loadedHere.map((l) => l.description).join(', ')
+          : emptyTxt;
+      } else {
+        nextRoute.customer = emptyTxt;
+      }
     }
     routesSet.add(nextRoute);
-    const routes = Array.from(routesSet);
+    const routes = Array.from(routesSet).filter(route =>
+      (route.stopOdometer - route.startOdometer !== 0) && (route.startCity !== route.stopCity)
+    );
+
+
 
 
     return {
@@ -885,106 +926,18 @@ export class ToursService {
       expence10: `${expences[9] ?? ''}`,
       expence11: `${expences[10] ?? ''}`,
       expence12: `${expences[11] ?? ''}`,
-      startCity1: `${routes[0] ? routes[0].startCity : ''}`,
-      startCity2: `${routes[1] ? routes[1].startCity : ''}`,
-      startCity3: `${routes[2] ? routes[2].startCity : ''}`,
-      startCity4: `${routes[3] ? routes[3].startCity : ''}`,
-      startCity5: `${routes[4] ? routes[4].startCity : ''}`,
-      startCity6: `${routes[5] ? routes[5].startCity : ''}`,
-      startCity7: `${routes[6] ? routes[6].startCity : ''}`,
-      startCity8: `${routes[7] ? routes[7].startCity : ''}`,
-      startCity9: `${routes[8] ? routes[8].startCity : ''}`,
-      startCity10: `${routes[9] ? routes[9].startCity : ''}`,
-      stopCity1: `${routes[0] ? routes[0].stopCity : ''}`,
-      stopCity2: `${routes[1] ? routes[1].stopCity : ''}`,
-      stopCity3: `${routes[2] ? routes[2].stopCity : ''}`,
-      stopCity4: `${routes[3] ? routes[3].stopCity : ''}`,
-      stopCity5: `${routes[4] ? routes[4].stopCity : ''}`,
-      stopCity6: `${routes[5] ? routes[5].stopCity : ''}`,
-      stopCity7: `${routes[6] ? routes[6].stopCity : ''}`,
-      stopCity8: `${routes[7] ? routes[7].stopCity : ''}`,
-      stopCity9: `${routes[8] ? routes[8].stopCity : ''}`,
-      stopCity10: `${routes[9] ? routes[9].stopCity : ''}`,
-      distance1: `${routes[0] ? separator(routes[0].stopOdometer - routes[0].startOdometer) : ''}`,
-      distance2: `${routes[1] ? separator(routes[1].stopOdometer - routes[1].startOdometer) : ''}`,
-      distance3: `${routes[2] ? separator(routes[2].stopOdometer - routes[2].startOdometer) : ''}`,
-      distance4: `${routes[3] ? separator(routes[3].stopOdometer - routes[3].startOdometer) : ''}`,
-      distance5: `${routes[4] ? separator(routes[4].stopOdometer - routes[4].startOdometer) : ''}`,
-      distance6: `${routes[5] ? separator(routes[5].stopOdometer - routes[5].startOdometer) : ''}`,
-      distance7: `${routes[6] ? separator(routes[6].stopOdometer - routes[6].startOdometer) : ''}`,
-      distance8: `${routes[7] ? separator(routes[7].stopOdometer - routes[7].startOdometer) : ''}`,
-      distance9: `${routes[8] ? separator(routes[8].stopOdometer - routes[8].startOdometer) : ''}`,
-      distance10: `${routes[9] ? separator(routes[9].stopOdometer - routes[9].startOdometer) : ''}`,
-      customer1: `${routes[0] ? routes[0].customer : ''}`,
-      customer2: `${routes[1] ? routes[1].customer : ''}`,
-      customer3: `${routes[2] ? routes[2].customer : ''}`,
-      customer4: `${routes[3] ? routes[3].customer : ''}`,
-      customer5: `${routes[4] ? routes[4].customer : ''}`,
-      customer6: `${routes[5] ? routes[5].customer : ''}`,
-      customer7: `${routes[6] ? routes[6].customer : ''}`,
-      customer8: `${routes[7] ? routes[7].customer : ''}`,
-      customer9: `${routes[8] ? routes[8].customer : ''}`,
-      customer10: `${routes[9] ? routes[9].customer : ''}`,
-      startData1: `${routes[0] ? formatDate(routes[0].startDate) + ' ' + formatTime(routes[0].startDate) : ''}`,
-      startOdometer1: `${routes[0] ? separator(routes[0].startOdometer) + ' km' : ''}`,
-      borderDate1: `${routes[0] ? formatDate(routes[0].borderDate) + ' ' + formatTime(routes[0].borderDate) : ''}`,
-      borderPlace1: `${routes[0] ? routes[0].borderPlace : ''}`,
-      stopData1: `${routes[0] ? formatDate(routes[0].stopDate) + ' ' + formatTime(routes[0].stopDate) : ''}`,
-      stopOdometer1: `${routes[0] ? separator(routes[0].stopOdometer) + ' km' : ''}`,
-      startData2: `${routes[1] ? formatDate(routes[1].startDate) + ' ' + formatTime(routes[1].startDate) : ''}`,
-      startOdometer2: `${routes[1] ? separator(routes[1].startOdometer) + ' km' : ''}`,
-      borderDate2: `${routes[1] ? formatDate(routes[1].borderDate) + ' ' + formatTime(routes[1].borderDate) : ''}`,
-      borderPlace2: `${routes[1] ? routes[1].borderPlace : ''}`,
-      stopData2: `${routes[1] ? formatDate(routes[1].stopDate) + ' ' + formatTime(routes[1].stopDate) : ''}`,
-      stopOdometer2: `${routes[1] ? separator(routes[1].stopOdometer) + ' km' : ''}`,
-      startData3: `${routes[2] ? formatDate(routes[2].startDate) + ' ' + formatTime(routes[2].startDate) : ''}`,
-      startOdometer3: `${routes[2] ? separator(routes[2].startOdometer) + ' km' : ''}`,
-      borderDate3: `${routes[2] ? formatDate(routes[2].borderDate) + ' ' + formatTime(routes[2].borderDate) : ''}`,
-      borderPlace3: `${routes[2] ? routes[2].borderPlace : ''}`,
-      stopData3: `${routes[2] ? formatDate(routes[2].stopDate) + ' ' + formatTime(routes[2].stopDate) : ''}`,
-      stopOdometer3: `${routes[2] ? separator(routes[2].stopOdometer) + ' km' : ''}`,
-      startData4: `${routes[3] ? formatDate(routes[3].startDate) + ' ' + formatTime(routes[3].startDate) : ''}`,
-      startOdometer4: `${routes[3] ? separator(routes[3].startOdometer) + ' km' : ''}`,
-      borderDate4: `${routes[3] ? formatDate(routes[3].borderDate) + ' ' + formatTime(routes[3].borderDate) : ''}`,
-      borderPlace4: `${routes[3] ? routes[3].borderPlace : ''}`,
-      stopData4: `${routes[3] ? formatDate(routes[3].stopDate) + ' ' + formatTime(routes[3].stopDate) : ''}`,
-      stopOdometer4: `${routes[3] ? separator(routes[3].stopOdometer) + ' km' : ''}`,
-      startData5: `${routes[4] ? formatDate(routes[4].startDate) + ' ' + formatTime(routes[4].startDate) : ''}`,
-      startOdometer5: `${routes[4] ? separator(routes[4].startOdometer) + ' km' : ''}`,
-      borderDate5: `${routes[4] ? formatDate(routes[4].borderDate) + ' ' + formatTime(routes[4].borderDate) : ''}`,
-      borderPlace5: `${routes[4] ? routes[4].borderPlace : ''}`,
-      stopData5: `${routes[4] ? formatDate(routes[4].stopDate) + ' ' + formatTime(routes[4].stopDate) : ''}`,
-      stopOdometer5: `${routes[4] ? separator(routes[4].stopOdometer) + ' km' : ''}`,
-      startData6: `${routes[5] ? formatDate(routes[5].startDate) + ' ' + formatTime(routes[5].startDate) : ''}`,
-      startOdometer6: `${routes[5] ? separator(routes[5].startOdometer) + ' km' : ''}`,
-      borderDate6: `${routes[5] ? formatDate(routes[5].borderDate) + ' ' + formatTime(routes[5].borderDate) : ''}`,
-      borderPlace6: `${routes[5] ? routes[5].borderPlace : ''}`,
-      stopData6: `${routes[5] ? formatDate(routes[5].stopDate) + ' ' + formatTime(routes[5].stopDate) : ''}`,
-      stopOdometer6: `${routes[5] ? separator(routes[5].stopOdometer) + ' km' : ''}`,
-      startData7: `${routes[6] ? formatDate(routes[6].startDate) + ' ' + formatTime(routes[6].startDate) : ''}`,
-      startOdometer7: `${routes[6] ? separator(routes[6].startOdometer) + ' km' : ''}`,
-      borderDate7: `${routes[6] ? formatDate(routes[6].borderDate) + ' ' + formatTime(routes[6].borderDate) : ''}`,
-      borderPlace7: `${routes[6] ? routes[6].borderPlace : ''}`,
-      stopData7: `${routes[6] ? formatDate(routes[6].stopDate) + ' ' + formatTime(routes[6].stopDate) : ''}`,
-      stopOdometer7: `${routes[6] ? separator(routes[6].stopOdometer) + ' km' : ''}`,
-      startData8: `${routes[7] ? formatDate(routes[7].startDate) + ' ' + formatTime(routes[7].startDate) : ''}`,
-      startOdometer8: `${routes[7] ? separator(routes[7].startOdometer) + ' km' : ''}`,
-      borderDate8: `${routes[7] ? formatDate(routes[7].borderDate) + ' ' + formatTime(routes[7].borderDate) : ''}`,
-      borderPlace8: `${routes[7] ? routes[7].borderPlace : ''}`,
-      stopData8: `${routes[7] ? formatDate(routes[7].stopDate) + ' ' + formatTime(routes[7].stopDate) : ''}`,
-      stopOdometer8: `${routes[7] ? separator(routes[7].stopOdometer) + ' km' : ''}`,
-      startData9: `${routes[8] ? formatDate(routes[8].startDate) + ' ' + formatTime(routes[8].startDate) : ''}`,
-      startOdometer9: `${routes[8] ? separator(routes[8].startOdometer) + ' km' : ''}`,
-      borderDate9: `${routes[8] ? formatDate(routes[8].borderDate) + ' ' + formatTime(routes[8].borderDate) : ''}`,
-      borderPlace9: `${routes[8] ? routes[8].borderPlace : ''}`,
-      stopData9: `${routes[8] ? formatDate(routes[8].stopDate) + ' ' + formatTime(routes[8].stopDate) : ''}`,
-      stopOdometer9: `${routes[8] ? separator(routes[8].stopOdometer) + ' km' : ''}`,
-      startData10: `${routes[9] ? formatDate(routes[9].startDate) + ' ' + formatTime(routes[9].startDate) : ''}`,
-      startOdometer10: `${routes[9] ? separator(routes[9].startOdometer) + ' km' : ''}`,
-      borderDate10: `${routes[9] ? formatDate(routes[9].borderDate) + ' ' + formatTime(routes[9].borderDate) : ''}`,
-      borderPlace10: `${routes[9] ? routes[9].borderPlace : ''}`,
-      stopData10: `${routes[9] ? formatDate(routes[9].stopDate) + ' ' + formatTime(routes[9].stopDate) : ''}`,
-      stopOdometer10: `${routes[9] ? separator(routes[9].stopOdometer) + ' km' : ''}`,
+      routes: routes.map((r) => ({
+        startCity: r.startCity,
+        startData: formatDate(r.startDate) + ' ' + formatTime(r.startDate),
+        startOdometer: separator(r.startOdometer) + ' km',
+        borderDate: formatDate(r.borderDate) + ' ' + formatTime(r.borderDate),
+        borderPlace: r.borderPlace,
+        stopCity: r.stopCity,
+        stopData: formatDate(r.stopDate) + ' ' + formatTime(r.stopDate),
+        stopOdometer: separator(r.stopOdometer) + ' km',
+        distance: separator(r.stopOdometer - r.startOdometer),
+        customer: r.customer,
+      })),
       refueled: `${separator(tour.totalRefuel)}`,
       stops: '',
       other: '',

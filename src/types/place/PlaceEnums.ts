@@ -7,4 +7,5 @@ export enum placeTypeEnum {
   parking = 5,
   service = 6,
   customs = 7,
+  fuelStation = 8,
 }

@@ -11,7 +11,7 @@ import { placeTypeEnum, userLangEnum } from '../types';
 import { PlacesService } from '../places/places.service';
 import { hashPwd } from '../utlis/hash-pwd';
 import { UserUpdateDto } from './dto/user-update.dto';
-import { MailService } from '../mail/mail.service';
+// import { MailService } from '../mail/mail.service';
 import { registeredEmailTemplate } from '../templates/email/registered';
 
 @Injectable()
@@ -21,8 +21,8 @@ export class UsersService {
     private userRepository: Repository<UserEntity>,
     @Inject(PlacesService)
     private placesService: PlacesService,
-    @Inject(MailService)
-    private mailService: MailService,
+    // @Inject(MailService)
+    // private mailService: MailService,
   ) {}
 
   async register(
@@ -37,7 +37,6 @@ export class UsersService {
         lastName: userDto.lastName,
         lang: userDto.lang,
         country: userDto.country,
-        customer: userDto.defaultCustomer,
         bidType: userDto.bidType,
         bid: userDto.bid,
         currency: userDto.currency,
@@ -67,14 +66,14 @@ export class UsersService {
         { companyId: place.id },
       );
       delete user.pwdHash;
-      await this.mailService.sendMail(
-        user.email,
-        user.lang === userLangEnum.pl
-          ? 'Rejestracja zakończona pomyślnie!'
-          : 'Registration completed successfully!'
-        ,
-        registeredEmailTemplate(user.lang)
-      );
+      // await this.mailService.sendMail(
+      //   user.email,
+      //   user.lang === userLangEnum.pl
+      //     ? 'Rejestracja zakończona pomyślnie!'
+      //     : 'Registration completed successfully!'
+      //   ,
+      //   registeredEmailTemplate(user.lang)
+      // );
       return user;
     } catch {
       throw new InternalServerErrorException();
@@ -135,7 +134,6 @@ export class UsersService {
         lastName: user.lastName,
         lang: user.lang,
         companyId: user.companyId,
-        customer: user.customer,
         bidType: user.bidType,
         bid: user.bid,
         fuelConType: user.fuelConsumptionType,

@@ -64,7 +64,7 @@ export class LogsController {
       throw new BadRequestException('countryConflict');
     }
     if (data.addNewBorder) {
-      await this.bordersService.create(data.place, user.country, data.country);
+      await this.bordersService.create(data.place, user.country, data.country, user.id);
     }
     delete data.addNewBorder;
     return await this.logsService.create(data, user.id, activeRoute.id, logTypeEnum.crossBorder);
@@ -93,6 +93,22 @@ export class LogsController {
       search = null;
     }
     return await this.logsService.get(user.id, page, perPage, search);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('getByPlaceId/:placeId/:page/:perPage/:search?')
+  async getByPlaceId(
+    @Param('placeId') placeId: string,
+    @Param('page') page: string,
+    @Param('perPage') perPage: string,
+    @Param('search') searchParam: string,
+    @UserObj() user: UserEntity,
+  ): Promise<LogListResponse> {
+    let search = searchParam || '';
+    if (search.length < 2) {
+      search = null;
+    }
+    return await this.logsService.getByPlaceId(user.id, Number(placeId), page, perPage, search);
   }
 
   @UseGuards(JwtAuthGuard)

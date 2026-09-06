@@ -6,7 +6,9 @@ import { BorderInterface } from '../types';
 })
 export class BorderEntity implements BorderInterface {
   @PrimaryGeneratedColumn({ type: 'int' })
-  id: string;
+  id: number;
+  @Column({ type: 'varchar', length: 36 })
+  userId: string;
   @Column({ type: 'varchar', length: 30 })
   place: string;
   @Column({ type: 'varchar', length: 3 })
