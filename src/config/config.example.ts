@@ -1,8 +1,8 @@
 /**
- export const config = {
+export const config = {
   dbHost: 'localhost',
   dbUser: 'root',
-  dbPassword: '',
+  dbPassword: undefined,
   dbDatabase: 'logbook',
   crossOrigin: ['http://localhost:3000', 'http://localhost:8081'],
   origin: 'http://localhost:3001/v3',
@@ -13,13 +13,16 @@
   hmacKey:
     'Ifrtkljgg2234%df#^%^dfasfYberfgoepwurpu92asf@#fsdguujrklf;assdfjhnnm.3d2fsairtrtgdiuyq^gfdjiterkjfHGSrtlgfdfdmbndsfH#rehg', //salt
   tokenExpirationTime: 60 * 60 * 24,
+  refreshTokenExpirationTime: 60 * 60 * 24 * 30, // 30 dni
+  refreshCookieName: 'refreshToken',
+  cookieSameSite: 'lax' as const,
   mailerAuthUser: 'admin',
   mailerAuthPassword: 'password',
   mailerHost: 'localhost',
   mailerSmtpPort: 2500,
   mailerFrom: 'App@DriverLogBook.com',
-  secure: false, // if you use https then change it to TRUE !!!!
+  secure: true, // if you use https then change it to TRUE !!!!
   domain: 'localhost',
-  httpOnly: true,
-};
+  httpOnly: false,
+  };
  **/
