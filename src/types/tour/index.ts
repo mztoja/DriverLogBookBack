@@ -5,3 +5,4 @@ export * from './TourMInterface';
 export * from './TourSettleFormInterface';
 export * from './TourEditData';
 export * from './TourSettleGeneratorInterface';
+export * from './TourStatsInterface';

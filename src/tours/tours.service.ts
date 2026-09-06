@@ -7,6 +7,9 @@ import {
   TourInterface,
   TourNumbersInterface,
   TourSettleGeneratorInterface,
+  TourStatsBucket,
+  TourStatsInterface,
+  TourStatsMonth,
   tourStatusEnum,
   userBidTypeEnum,
   userLangEnum,
@@ -332,6 +335,141 @@ export class ToursService {
     return await this.tourMRepository.find({
       where: { userId, month: Like(`${year}%`) },
     });
+  }
+
+  async getStats(userId: string, currency: string): Promise<TourStatsInterface> {
+    const rows = await this.tourRepository
+      .createQueryBuilder('tour')
+      .select('tour.distance', 'distance')
+      .addSelect('tour.driveTime', 'driveTime')
+      .addSelect('tour.workTime', 'workTime')
+      .addSelect('tour.daysOnDuty', 'daysOnDuty')
+      .addSelect('tour.daysOffDuty', 'daysOffDuty')
+      .addSelect('tour.totalRefuel', 'totalRefuel')
+      .addSelect('tour.burnedFuelComp', 'burnedFuelComp')
+      .addSelect('tour.burnedFuelReal', 'burnedFuelReal')
+      .addSelect('tour.numberOfLoads', 'numberOfLoads')
+      .addSelect('tour.avgWeight', 'avgWeight')
+      .addSelect('tour.expectedSalary', 'expectedSalary')
+      .addSelect('tour.salary', 'salary')
+      .addSelect('tour.outgoings', 'outgoings')
+      .addSelect('stopLog.date', 'stopDate')
+      .innerJoin(LogEntity, 'stopLog', 'stopLog.id = tour.stopLogId')
+      .where('tour.userId = :userId AND tour.status IN (:...statuses)', {
+        userId,
+        statuses: [tourStatusEnum.finished, tourStatusEnum.settled],
+      })
+      .getRawMany();
+
+    const secToHM = (sec: number): string => {
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      return `${h}:${m.toString().padStart(2, '0')}`;
+    };
+
+    interface Acc {
+      toursCount: number;
+      distance: number;
+      driveSec: number;
+      workSec: number;
+      daysOnDuty: number;
+      daysOffDuty: number;
+      totalRefuel: number;
+      burnedFuelComp: number;
+      burnedFuelReal: number;
+      numberOfLoads: number;
+      weightedWeight: number; // sum(avgWeight * numberOfLoads)
+      expectedSalary: number;
+      salary: number;
+      outgoings: number;
+    }
+    const emptyAcc = (): Acc => ({
+      toursCount: 0,
+      distance: 0,
+      driveSec: 0,
+      workSec: 0,
+      daysOnDuty: 0,
+      daysOffDuty: 0,
+      totalRefuel: 0,
+      burnedFuelComp: 0,
+      burnedFuelReal: 0,
+      numberOfLoads: 0,
+      weightedWeight: 0,
+      expectedSalary: 0,
+      salary: 0,
+      outgoings: 0,
+    });
+    const add = (acc: Acc, r: Record<string, unknown>): void => {
+      const loads = Number(r.numberOfLoads) || 0;
+      acc.toursCount += 1;
+      acc.distance += Number(r.distance) || 0;
+      acc.driveSec += calcSecondsFromTime(String(r.driveTime ?? '0:0'));
+      acc.workSec += calcSecondsFromTime(String(r.workTime ?? '0:0'));
+      acc.daysOnDuty += Number(r.daysOnDuty) || 0;
+      acc.daysOffDuty += Number(r.daysOffDuty) || 0;
+      acc.totalRefuel += Number(r.totalRefuel) || 0;
+      acc.burnedFuelComp += Number(r.burnedFuelComp) || 0;
+      acc.burnedFuelReal += Number(r.burnedFuelReal) || 0;
+      acc.numberOfLoads += loads;
+      acc.weightedWeight += (Number(r.avgWeight) || 0) * loads;
+      acc.expectedSalary += Number(r.expectedSalary) || 0;
+      acc.salary += Number(r.salary) || 0;
+      acc.outgoings += Number(r.outgoings) || 0;
+    };
+    const toBucket = (acc: Acc): TourStatsBucket => ({
+      toursCount: acc.toursCount,
+      distance: Math.round(acc.distance),
+      driveTime: secToHM(acc.driveSec),
+      workTime: secToHM(acc.workSec),
+      daysOnDuty: acc.daysOnDuty,
+      daysOffDuty: acc.daysOffDuty,
+      totalRefuel: Math.round(acc.totalRefuel * 100) / 100,
+      burnedFuelComp: Math.round(acc.burnedFuelComp),
+      burnedFuelReal: Math.round(acc.burnedFuelReal),
+      numberOfLoads: acc.numberOfLoads,
+      avgWeight: acc.numberOfLoads > 0 ? Math.round(acc.weightedWeight / acc.numberOfLoads) : 0,
+      expectedSalary: Math.round(acc.expectedSalary * 100) / 100,
+      salary: Math.round(acc.salary * 100) / 100,
+      outgoings: Math.round(acc.outgoings * 100) / 100,
+    });
+
+    const total = emptyAcc();
+    const byYear = new Map<number, { acc: Acc; months: Acc[] }>();
+
+    rows.forEach((r) => {
+      const d = new Date(String(r.stopDate));
+      if (Number.isNaN(d.getTime())) return;
+      const y = d.getFullYear();
+      const m = d.getMonth(); // 0..11
+      if (!byYear.has(y)) {
+        byYear.set(y, {
+          acc: emptyAcc(),
+          months: Array.from({ length: 12 }, () => emptyAcc()),
+        });
+      }
+      const bucket = byYear.get(y);
+      add(total, r);
+      add(bucket.acc, r);
+      add(bucket.months[m], r);
+    });
+
+    const toMonth = (mAcc: Acc, idx: number): TourStatsMonth => ({
+      month: idx + 1,
+      ...toBucket(mAcc),
+    });
+    const years = Array.from(byYear.entries())
+      .sort((a, b) => b[0] - a[0])
+      .map(([year, { acc, months }]) => ({
+        year,
+        ...toBucket(acc),
+        months: months.map(toMonth),
+      }));
+
+    return {
+      currency,
+      total: toBucket(total),
+      years,
+    };
   }
 
   async getRouteById(userId: string, id: number): Promise<TourInterface> {

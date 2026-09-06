@@ -9,7 +9,7 @@ import { DaysService } from '../days/days.service';
 import { TourEntity } from './tour.entity';
 import { LoadsService } from '../loads/loads.service';
 import { TourGetNumbersDto } from './dto/tour-get-numbers.dto';
-import { TourInterface, TourNumbersInterface, TourSettleGeneratorInterface } from '../types';
+import { TourInterface, TourNumbersInterface, TourSettleGeneratorInterface, TourStatsInterface } from '../types';
 import { TourCreateSettlementDto } from './dto/tour-create-settlement.dto';
 import { TourMEntity } from './tourM.entity';
 import { TourEditDto } from './dto/tour-edit.dto';
@@ -87,6 +87,12 @@ export class ToursController {
   @Post('getRouteNumbers')
   async getRouteNumbers(@Body() data: TourGetNumbersDto): Promise<TourNumbersInterface[]> {
     return await this.toursService.getRouteNumbers(data.tourIds);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('stats')
+  async getStats(@UserObj() user: UserEntity): Promise<TourStatsInterface> {
+    return await this.toursService.getStats(user.id, user.currency);
   }
 
   @UseGuards(JwtAuthGuard)
