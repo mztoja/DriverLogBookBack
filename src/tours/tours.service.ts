@@ -439,8 +439,8 @@ export class ToursService {
     rows.forEach((r) => {
       const d = new Date(String(r.stopDate));
       if (Number.isNaN(d.getTime())) return;
-      const y = d.getFullYear();
-      const m = d.getMonth(); // 0..11
+      const y = d.getUTCFullYear();
+      const m = d.getUTCMonth(); // 0..11
       if (!byYear.has(y)) {
         byYear.set(y, {
           acc: emptyAcc(),
@@ -679,16 +679,16 @@ export class ToursService {
     const formatDate = (dateString: string): string => {
       if (dateString.length < 1) return '';
       const date = new Date(dateString);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const year = date.getUTCFullYear();
       return `${day}.${month}.${year}`;
     };
     const formatTime = (dateString: string): string => {
       if (dateString.length < 1) return '';
       const date = new Date(dateString);
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const hours = String(date.getUTCHours()).padStart(2, '0');
+      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
       return `${hours}:${minutes}`;
     };
     const separator = (number: number): string => {

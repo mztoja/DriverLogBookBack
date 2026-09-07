@@ -28,6 +28,11 @@ import { UserNotesModule } from './user-notes/user-notes.module';
       username: config.dbUser,
       password: config.dbPassword,
       database: config.dbDatabase,
+      // Kolumny DATE/DATETIME trzymają "ścianę zegara" bez strefy. Wymuszamy interpretację
+      // jako UTC, żeby serializacja przez toISOString() (JSON) zwracała DOKŁADNIE te cyfry,
+      // które są w bazie – niezależnie od strefy, w której akurat działa proces Node
+      // (prod = kontener UTC, lokalny dev = np. Europe/Warsaw). Bez tego dev cofał godziny o offset.
+      timezone: 'Z',
       entities: ['dist/**/**.entity{.ts,.js}'],
       bigNumberStrings: false,
       logging: false,
