@@ -1,19 +1,34 @@
+# Obraz potrzebuje tylko package*.json i gotowego dist/ (build robiony lokalnie).
+
+# zależności (npm ci w obrazie odbudowuje pod linux/musl)
 node_modules
-dist
+
+# źródła i konfiguracja builda (niepotrzebne w obrazie)
+src
+test
+tsconfig.json
+tsconfig.build.json
+nest-cli.json
+.eslintrc.js
+.prettierrc
+schema-upgrade.sql
+
+# VCS / IDE
 .git
 .gitignore
+.vscode
+.idea
+
+# docker
 Dockerfile
 docker-compose.yml
 
+# sekrety / logi / raporty
 .env
 .env.*
 npm-debug.log
 *.log
-
 coverage
 .nyc_output
-
-.vscode
-.idea
 
 README.md

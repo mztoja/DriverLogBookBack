@@ -1,27 +1,16 @@
-# ===== BUILD =====
-FROM node:22-alpine AS builder
-
-WORKDIR /app
-
-COPY package*.json ./
-
-RUN npm ci
-
-COPY . .
-
-RUN npm run build
-
-
-# ===== PRODUCTION =====
+# Build (`npm run build`) wykonywany lokalnie przed budową obrazu.
+# Obraz tylko instaluje zależności produkcyjne i kopiuje gotowy katalog dist/.
 FROM node:22-alpine
 
 WORKDIR /app
+
+ENV NODE_ENV=production
 
 COPY package*.json ./
 
 RUN npm ci --omit=dev
 
-COPY --from=builder /app/dist ./dist
+COPY dist ./dist
 
 EXPOSE 3001
 
