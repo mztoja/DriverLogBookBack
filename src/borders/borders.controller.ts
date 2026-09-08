@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
 import { BordersService } from './borders.service';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
-import { UserObj } from 'src/decorators/user-obj.decorator';
-import { UserEntity } from 'src/users/user.entity';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { UserObj } from '../decorators/user-obj.decorator';
+import { UserEntity } from '../users/user.entity';
 import { BorderDeleteDto } from './dto/border-delete.dto';
 import { BorderEntity } from './border.entity';
 import { DeleteResult } from 'typeorm';
