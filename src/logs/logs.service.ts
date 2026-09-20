@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, Not, Repository } from 'typeorm';
 import { LogEntity } from './log.entity';
 import { LogCreateDto } from './dto/log-create.dto';
-import { LogInterface, LogListResponse, logTypeEnum, tourStatusEnum } from '../types';
+import { LogInterface, LogListResponse, logTypeEnum, tourStatusEnum, TourInterface } from '../types';
 import { UsersService } from '../users/users.service';
 import { PlaceEntity } from '../places/place.entity';
 import { ToursService } from '../tours/tours.service';
@@ -30,30 +30,7 @@ export class LogsService {
     await this.usersService.countryEnter(userId, data.country);
 
     if (data.odometer > 0) {
-      const findLastLog = async () => {
-        const ignoredIds: number[] = [];
-        let foundLog = await this.logRepository.findOne({
-          where: { userId, tourId },
-          order: { id: 'DESC' },
-        });
-        while (
-          foundLog &&
-          foundLog.odometer === 0 &&
-          (foundLog.type === logTypeEnum.maintenance || foundLog.type === logTypeEnum.service)
-        ) {
-          ignoredIds.push(foundLog.id);
-          foundLog = await this.logRepository.findOne({
-            where: {
-              userId,
-              tourId,
-              id: Not(In(ignoredIds)),
-            },
-            order: { id: 'DESC' },
-          });
-        }
-        return foundLog ? foundLog : null;
-      };
-      const lastLog = await findLastLog();
+      const lastLog = await this.getLastOdometerLog(userId, tourId);
       if (lastLog) {
         const addDistance = Number(data.odometer) - Number(lastLog.odometer);
         await this.toursService.addDistance(tourId, userId, addDistance);
@@ -87,13 +64,17 @@ export class LogsService {
     if (!tour || tour.status === tourStatusEnum.settled) {
       throw new BadRequestException('cannotEditSettledTourData');
     }
-    // const lastLog = await this.getLastLog(userId);
-    // if (lastLog && lastLog.id === old.id) {
-      const distanceDiff: number = Number(data.odometer) - Number(old.odometer);
-    // if (distanceDiff !== 0) {
+    const distanceDiff: number = Number(data.odometer) - Number(old.odometer);
+
+    if (await this.isTourBoundaryLog(userId, tour, old.id)) {
       await this.toursService.addDistance(tour.id, userId, distanceDiff);
-    // }
-    // }
+    }
+
+    const day = await this.daysService.getByLogId(userId, old.id);
+    if (day) {
+      await this.daysService.addDistance(day.id, userId, distanceDiff);
+    }
+
     await this.logRepository.update(
       { id: old.id },
       {
@@ -107,6 +88,49 @@ export class LogsService {
       },
     );
     return await this.logRepository.findOne({ where: { id: old.id } });
+  }
+
+  // Czy edytowana czynność jest faktyczną granicą trasy (start/koniec, albo — dla trasy w toku —
+  // jej aktualnie ostatnia czynność z licznikiem). Tylko wtedy zmiana odczytu licznika powinna
+  // wpłynąć na łączny przebieg trasy — dla czynności "środkowych" efekt netto to zawsze 0.
+  private async isTourBoundaryLog(userId: string, tour: TourInterface, logId: number): Promise<boolean> {
+    if (logId === tour.startLogId) {
+      return true;
+    }
+    if (tour.stopLogId !== 0 && logId === tour.stopLogId) {
+      return true;
+    }
+    if (tour.status === tourStatusEnum.started) {
+      const lastLog = await this.getLastOdometerLog(userId, tour.id);
+      return !!lastLog && lastLog.id === logId;
+    }
+    return false;
+  }
+
+  // Ostatnia czynność z niezerowym licznikiem dla danej trasy (pomija wpisy serwisowe/przeglądy
+  // z odometer=0) — "poruszająca się krawędź" trwającego, jeszcze nieaktywnego łańcucha odczytów.
+  private async getLastOdometerLog(userId: string, tourId: number): Promise<LogEntity | null> {
+    const ignoredIds: number[] = [];
+    let foundLog = await this.logRepository.findOne({
+      where: { userId, tourId },
+      order: { id: 'DESC' },
+    });
+    while (
+      foundLog &&
+      foundLog.odometer === 0 &&
+      (foundLog.type === logTypeEnum.maintenance || foundLog.type === logTypeEnum.service)
+    ) {
+      ignoredIds.push(foundLog.id);
+      foundLog = await this.logRepository.findOne({
+        where: {
+          userId,
+          tourId,
+          id: Not(In(ignoredIds)),
+        },
+        order: { id: 'DESC' },
+      });
+    }
+    return foundLog ? foundLog : null;
   }
 
   async setTourId(id: number, tourId: number) {

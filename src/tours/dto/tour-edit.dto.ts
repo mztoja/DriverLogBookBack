@@ -9,6 +9,8 @@ export class TourEditDto {
   @ValidateNested({ each: true })
   stopData: LogEditDto;
   @IsNumber()
+  distance: number;
+  @IsNumber()
   tourNr: number;
   @IsNumber()
   fuelStateBefore: number;

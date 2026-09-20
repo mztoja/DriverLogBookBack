@@ -570,19 +570,9 @@ export class ToursService {
       throw new BadRequestException('cannotEditSettledTourData');
     }
 
-    const oldStartLog = await this.logsService.find(data.startData.id);
-    const oldStopLog = data.stopData.id === 0 ? null : await this.logsService.find(data.stopData.id);
     const startLog = await this.logsService.edit(data.startData, user.id);
     const stopLog = data.stopData.id === 0 ? null : await this.logsService.edit(data.stopData, user.id);
-    let distance: number = Number(oldTour.distance);
-    if (oldStartLog) {
-      const diff = Number(oldStartLog.odometer - startLog.odometer);
-      distance = distance + diff;
-    }
-    if (oldStopLog) {
-      const diff = Number(oldStopLog.odometer - stopLog.odometer);
-      distance = distance - diff;
-    }
+    const distance = Number(data.distance);
 
     const allDaysTime = subtractDatesToTime(stopLog.date, startLog.date);
     const allDays = calculateDaysFromTime(allDaysTime);

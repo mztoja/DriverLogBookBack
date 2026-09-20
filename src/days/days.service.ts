@@ -121,6 +121,7 @@ export class DaysService {
     if (!oldDay) {
       throw new BadRequestException();
     }
+    const tour = await this.toursService.getRouteById(userId, oldDay.tourId);
     const startLog = await this.logsService.edit(data.startData, userId);
     await this.dayRepository.update(
       { id: oldDay.id },
@@ -131,6 +132,14 @@ export class DaysService {
       },
     );
     const newDay = await this.dayRepository.findOne({ where: { id: oldDay.id } });
+    // Zob. komentarz w edit() — pomijamy propagację, gdy startowa czynność dnia jest jednocześnie
+    // graniczną czynnością trasy (już obsłużona przez logsService.edit() powyżej).
+    if (tour && data.startData.id !== tour.startLogId) {
+      const distanceDelta: number = Number(newDay.distance) - Number(oldDay.distance);
+      if (distanceDelta !== 0) {
+        await this.toursService.addDistance(tour.id, userId, distanceDelta);
+      }
+    }
     const olderDay = await this.dayRepository.findOne({
       where: {
         userId,
@@ -188,8 +197,20 @@ export class DaysService {
         await this.dayRepository.update({ id: olderDay.id }, { breakTime });
       }
     }
-    // const distance: number = Number(newDay.distance) - Number(oldDay.distance);
-    // await this.toursService.addDistance(tour.id, user.id, distance);
+    // Propagacja zmiany przebiegu dnia do trasy — pomijamy, gdy graniczna czynność dnia jest
+    // jednocześnie graniczną czynnością trasy (wtedy korektę już wykonała gałąź graniczna
+    // w logsService.edit(), wywołana zagnieżdżenie powyżej — uniknięcie podwójnego liczenia).
+    const dayAffectsTourBoundary =
+      data.startData.id === tour.startLogId ||
+      data.startData.id === tour.stopLogId ||
+      data.stopData.id === tour.startLogId ||
+      data.stopData.id === tour.stopLogId;
+    if (!dayAffectsTourBoundary) {
+      const distanceDelta: number = Number(newDay.distance) - Number(oldDay.distance);
+      if (distanceDelta !== 0) {
+        await this.toursService.addDistance(tour.id, user.id, distanceDelta);
+      }
+    }
     const fuel: number = Number(newDay.fuelBurned) - Number(oldDay.fuelBurned);
     const driveTime: number = calcSecondsFromTime(newDay.driveTime) - calcSecondsFromTime(oldDay.driveTime);
     const driveTime2: number = calcSecondsFromTime(newDay.driveTime2) - calcSecondsFromTime(oldDay.driveTime2);
