@@ -123,10 +123,12 @@ export class LoadsService {
       tourId,
       logTypeEnum.finishLoading,
     );
-    let loadNr = 1;
-    const lastLoad = await this.getLastLoad(userId);
-    if (lastLoad) {
-      loadNr = lastLoad.loadNr + 1;
+    let loadNr = data.loadNr ?? 1;
+    if (!data.loadNr) {
+      const lastLoad = await this.getLastLoad(userId);
+      if (lastLoad) {
+        loadNr = lastLoad.loadNr + 1;
+      }
     }
     await this.toursService.addLoading(tourId, userId, data.weight);
     return await this.loadRepository.save({
@@ -163,6 +165,7 @@ export class LoadsService {
     await this.loadRepository.update(
       { id: oldLoad.id },
       {
+        loadNr: data.loadNr,
         distance: data.distance,
         description: data.description,
         quantity: data.quantity,

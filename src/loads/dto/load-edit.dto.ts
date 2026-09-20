@@ -4,6 +4,9 @@ import { LogEditDto } from '../../logs/dto/log-edit.dto';
 export class LoadEditDto {
   @IsNumber()
   id: number;
+  @IsNumber()
+  @Min(1, { message: 'loadNr' })
+  loadNr: number;
   @ValidateNested({ each: true })
   loadingLogData: LogEditDto;
   @ValidateNested({ each: true })

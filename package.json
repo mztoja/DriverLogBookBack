@@ -2,7 +2,7 @@
   "name": "driver-log-book-back",
   "version": "3.4.2",
   "description": "",
-  "author": "",
+  "author": "Marcin Zyskowski",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

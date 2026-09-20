@@ -1,6 +1,7 @@
 import { AddLogData } from './AddLogData';
 
 export interface AddLoadingData extends AddLogData {
+  loadNr?: string;
   vehicle: string;
   senderId: string;
   receiverId: string;

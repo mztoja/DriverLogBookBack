@@ -1,7 +1,11 @@
 import { LogCreateDto } from '../../logs/dto/log-create.dto';
-import { IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class LoadCreateDto extends LogCreateDto {
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  loadNr?: number;
   @IsString()
   @IsNotEmpty({ message: 'vehicle' })
   vehicle: string;
