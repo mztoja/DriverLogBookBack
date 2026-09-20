@@ -1,6 +1,6 @@
 import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, LessThan, Not, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { LogsService } from '../logs/logs.service';
 import { DayEntity } from './day.entity';
 import { DayCreateDto } from './dto/day-create.dto';
@@ -45,23 +45,6 @@ export class DaysService {
       action: data.action,
     };
     const log = await this.logsService.create(logData, userId, tourId, logTypeEnum.days);
-
-    let breakTime = '00:00';
-    if (data.cardInserted) {
-      const lastDayWithCard = await this.dayRepository.findOne({
-        where: {
-          userId,
-          status: dayStatusEnum.finished,
-          cardState: In([dayCardStateEnum.inserted, dayCardStateEnum.takenOut]),
-        },
-        order: { id: 'DESC' },
-      });
-      if (lastDayWithCard) {
-        const lastLog = await this.logsService.find(lastDayWithCard.stopLogId);
-        breakTime = subtractDatesToTime(log.date, lastLog.date);
-        await this.dayRepository.update({ id: lastDayWithCard.id }, { breakTime });
-      }
-    }
 
     return await this.dayRepository.save({
       userId,
@@ -122,7 +105,7 @@ export class DaysService {
       throw new BadRequestException();
     }
     const tour = await this.toursService.getRouteById(userId, oldDay.tourId);
-    const startLog = await this.logsService.edit(data.startData, userId);
+    await this.logsService.edit(data.startData, userId);
     await this.dayRepository.update(
       { id: oldDay.id },
       {
@@ -140,21 +123,6 @@ export class DaysService {
         await this.toursService.addDistance(tour.id, userId, distanceDelta);
       }
     }
-    const olderDay = await this.dayRepository.findOne({
-      where: {
-        userId,
-        id: LessThan(newDay.id),
-        cardState: Not(dayCardStateEnum.notUsed),
-      },
-      order: { id: 'DESC' },
-    });
-    if (olderDay && newDay.cardState !== dayCardStateEnum.notUsed) {
-      const log = await this.logsService.find(olderDay.stopLogId);
-      const breakTime = subtractDatesToTime(startLog.date, log.date);
-      await this.dayRepository.update({ id: olderDay.id }, { breakTime });
-    } else if (olderDay && newDay.cardState === dayCardStateEnum.notUsed) {
-      await this.dayRepository.update({ id: olderDay.id }, { breakTime: '00:00:00' });
-    }
     return newDay;
   }
 
@@ -167,12 +135,11 @@ export class DaysService {
     if (!tour || tour.status === tourStatusEnum.settled) {
       throw new BadRequestException('cannotEditSettledTourData');
     }
-    const startLog = await this.logsService.edit(data.startData, user.id);
+    await this.logsService.edit(data.startData, user.id);
     await this.logsService.edit(data.stopData, user.id);
     await this.dayRepository.update(
       { id: oldDay.id },
       {
-        breakTime: data.breakTime,
         distance: data.distance,
         workTime: data.workTime,
         fuelBurned: data.fuelBurned,
@@ -182,21 +149,6 @@ export class DaysService {
       },
     );
     const newDay = await this.dayRepository.findOne({ where: { id: oldDay.id } });
-    if (newDay.cardState !== dayCardStateEnum.notUsed) {
-      const olderDay = await this.dayRepository.findOne({
-        where: {
-          userId: user.id,
-          id: LessThan(newDay.id),
-          cardState: Not(dayCardStateEnum.notUsed),
-        },
-        order: { id: 'DESC' },
-      });
-      if (olderDay) {
-        const log = await this.logsService.find(olderDay.stopLogId);
-        const breakTime = subtractDatesToTime(startLog.date, log.date);
-        await this.dayRepository.update({ id: olderDay.id }, { breakTime });
-      }
-    }
     // Propagacja zmiany przebiegu dnia do trasy — pomijamy, gdy graniczna czynność dnia jest
     // jednocześnie graniczną czynnością trasy (wtedy korektę już wykonała gałąź graniczna
     // w logsService.edit(), wywołana zagnieżdżenie powyżej — uniknięcie podwójnego liczenia).

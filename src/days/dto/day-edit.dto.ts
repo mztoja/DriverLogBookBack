@@ -20,8 +20,6 @@ export class DayEditDto {
   driveTime2: string;
   @IsString()
   workTime: string;
-  @IsString()
-  breakTime: string;
   @IsNumber()
   fuelBurned: number;
   @Transform(({ obj }) => obj.doubleCrew === 'true')

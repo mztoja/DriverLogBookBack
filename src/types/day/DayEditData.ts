@@ -10,7 +10,6 @@ export interface DayEditData {
   driveTime: string;
   driveTime2: string;
   workTime: string;
-  breakTime: string;
   fuelBurned: string;
   doubleCrew: 'true' | 'false';
 }
