@@ -57,7 +57,6 @@ export class DaysService {
   }
 
   async finish(data: DayFinishDto, userFuelConType: number, activeDay: DayEntity): Promise<DayEntity> {
-    const startLog = await this.logsService.find(activeDay.startLogId);
     const logData: LogCreateDto = {
       country: data.country,
       odometer: data.odometer,
@@ -69,7 +68,6 @@ export class DaysService {
     };
     const stopLog = await this.logsService.create(logData, activeDay.userId, activeDay.tourId, logTypeEnum.days);
     const distance = (await this.dayRepository.findOne({ where: { id: activeDay.id } })).distance;
-    const workTime = subtractDatesToTime(stopLog.date, startLog.date);
     const fuelBurned =
       userFuelConType === userFuelContypeEnum.per100km ? (distance / 100) * data.fuelCombustion : data.fuelCombustion;
     await this.dayRepository.update(
@@ -85,7 +83,6 @@ export class DaysService {
         driveTime2: data.driveTime2,
         stopLogId: stopLog.id,
         fuelBurned,
-        workTime,
       },
     );
     const newDay = await this.dayRepository.findOne({ where: { id: activeDay.id } });
@@ -93,9 +90,11 @@ export class DaysService {
       activeDay.tourId,
       activeDay.userId,
       calcSecondsFromTime(addTimes(newDay.driveTime, calcSecondsFromTime(newDay.driveTime2))),
-      calcSecondsFromTime(newDay.workTime),
       newDay.fuelBurned,
     );
+    // day.workTime nie jest już przechowywany — utrzymujemy tour.workTime "na żywo" przeliczając
+    // go świeżo z dat start/stop wszystkich dni trasy (zob. getTotalWorkTimeByRoute niżej).
+    await this.toursService.recalcWorkTime(activeDay.tourId, activeDay.userId);
     return newDay;
   }
 
@@ -140,8 +139,8 @@ export class DaysService {
     await this.dayRepository.update(
       { id: oldDay.id },
       {
+        cardState: data.cardState,
         distance: data.distance,
-        workTime: data.workTime,
         fuelBurned: data.fuelBurned,
         driveTime: data.driveTime,
         driveTime2: data.driveTime2,
@@ -166,8 +165,9 @@ export class DaysService {
     const fuel: number = Number(newDay.fuelBurned) - Number(oldDay.fuelBurned);
     const driveTime: number = calcSecondsFromTime(newDay.driveTime) - calcSecondsFromTime(oldDay.driveTime);
     const driveTime2: number = calcSecondsFromTime(newDay.driveTime2) - calcSecondsFromTime(oldDay.driveTime2);
-    const workTime: number = calcSecondsFromTime(newDay.workTime) - calcSecondsFromTime(oldDay.workTime);
-    await this.toursService.addTimesAndFuel(tour.id, user.id, driveTime + driveTime2, workTime, fuel);
+    await this.toursService.addTimesAndFuel(tour.id, user.id, driveTime + driveTime2, fuel);
+    // calcDaysOnDuty() przelicza tour.workTime świeżo z dat wszystkich dni trasy (zob.
+    // getTotalWorkTimeByRoute niżej) — nie doliczamy już delty workTime tego dnia osobno.
     await this.toursService.calcDaysOnDuty(tour.id, user.id);
     await this.toursService.calcExpectedSalary(tour.id, user.id, user.bid, user.bidType);
     return newDay;
@@ -260,11 +260,16 @@ export class DaysService {
     return driveTime;
   }
 
+  // Kanoniczne źródło prawdy dla czasu pracy trasy — liczone świeżo z dat start/stop
+  // wszystkich zakończonych dni trasy (day.workTime nie jest już przechowywany/zapisywany).
   async getTotalWorkTimeByRoute(userId: string, tourId: number): Promise<string> {
     const days = await this.getByTourId(userId, tourId);
     let workTime = '00:00:00';
-    days.map((day) => {
-      workTime = addTimes(workTime, calcSecondsFromTime(day.workTime));
+    days.forEach((day) => {
+      if (day.startData && day.stopData) {
+        const dayWorkTime = subtractDatesToTime(day.stopData.date, day.startData.date);
+        workTime = addTimes(workTime, calcSecondsFromTime(dayWorkTime));
+      }
     });
     return workTime;
   }
