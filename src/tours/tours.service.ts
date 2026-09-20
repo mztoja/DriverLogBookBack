@@ -579,9 +579,12 @@ export class ToursService {
     const daysOnDuty = calculateDaysFromTime(oldTour.workTime);
     const daysOffDuty = allDays - daysOnDuty;
 
-    const fuelStartDiff = oldTour.fuelStateAfter - Number(data.fuelStateAfter);
-    const fuelStopDiff = oldTour.fuelStateBefore - Number(data.fuelStateBefore);
-    const fuel = oldTour.burnedFuelReal - fuelStartDiff + fuelStopDiff;
+    // burnedFuelReal = fuelStateBefore + totalRefuel - fuelStateAfter (zob. finish()) —
+    // przy edycji przeliczamy o deltę obu odczytów, zachowując ten sam znak.
+    const fuel =
+      Number(oldTour.burnedFuelReal) +
+      (Number(data.fuelStateBefore) - Number(oldTour.fuelStateBefore)) -
+      (Number(data.fuelStateAfter) - Number(oldTour.fuelStateAfter));
     await this.tourRepository.update(
       { id: oldTour.id },
       {
@@ -615,8 +618,9 @@ export class ToursService {
       distance = distance + diff;
     }
 
-    const fuelStartDiff = oldTour.fuelStateAfter - Number(data.fuelStateAfter);
-    const fuel = oldTour.burnedFuelReal - fuelStartDiff;
+    // Trasa w toku — jedyny realnie edytowalny tu odczyt to fuelStateBefore (fuelStateAfter
+    // pojawia się dopiero po zakończeniu trasy), więc tylko ta delta wpływa na burnedFuelReal.
+    const fuel = Number(oldTour.burnedFuelReal) + (Number(data.fuelStateBefore) - Number(oldTour.fuelStateBefore));
     await this.tourRepository.update(
       { id: oldTour.id },
       {
