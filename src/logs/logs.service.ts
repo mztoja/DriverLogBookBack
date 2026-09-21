@@ -133,6 +133,11 @@ export class LogsService {
     return foundLog ? foundLog : null;
   }
 
+  // Retypowanie istniejącego loga (np. "koniec dnia" -> "przerwa" przy wznowieniu dnia pracy).
+  async setType(id: number, userId: string, type: logTypeEnum): Promise<void> {
+    await this.logRepository.update({ id, userId }, { type });
+  }
+
   async setTourId(id: number, tourId: number) {
     try {
       return await this.logRepository.update(id, { tourId });

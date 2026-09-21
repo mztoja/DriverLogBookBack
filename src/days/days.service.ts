@@ -25,6 +25,7 @@ import { DayEditDto } from './dto/day-edit.dto';
 import { calcSecondsFromTime } from '../utlis/calcSecondsFromTime';
 import { UserEntity } from '../users/user.entity';
 import { DaySimpleEditDto } from './dto/day-simple-edit.dto';
+import { DayResumeDto } from './dto/day-resume.dto';
 
 @Injectable()
 export class DaysService {
@@ -86,16 +87,60 @@ export class DaysService {
       },
     );
     const newDay = await this.dayRepository.findOne({ where: { id: activeDay.id } });
-    await this.toursService.addTimesAndFuel(
-      activeDay.tourId,
-      activeDay.userId,
-      calcSecondsFromTime(addTimes(newDay.driveTime, calcSecondsFromTime(newDay.driveTime2))),
-      newDay.fuelBurned,
-    );
+    // Dzień mógł być wcześniej wznowiony (resumeDay) — activeDay.driveTime/driveTime2/fuelBurned
+    // to wtedy wartości sprzed przerwy, wciąż zapisane na dniu (nie czyścimy ich przy wznowieniu,
+    // żeby użytkownik widział je i doliczył nowy odcinek). Do trasy doliczamy tylko DELTĘ, inaczej
+    // pierwszy odcinek zostałby policzony podwójnie przy drugim zakończeniu tego samego dnia.
+    const driveTimeDelta =
+      calcSecondsFromTime(addTimes(newDay.driveTime, calcSecondsFromTime(newDay.driveTime2))) -
+      calcSecondsFromTime(addTimes(activeDay.driveTime, calcSecondsFromTime(activeDay.driveTime2)));
+    const fuelDelta = Number(newDay.fuelBurned) - Number(activeDay.fuelBurned);
+    await this.toursService.addTimesAndFuel(activeDay.tourId, activeDay.userId, driveTimeDelta, fuelDelta);
     // day.workTime nie jest już przechowywany — utrzymujemy tour.workTime "na żywo" przeliczając
     // go świeżo z dat start/stop wszystkich dni trasy (zob. getTotalWorkTimeByRoute niżej).
     await this.toursService.recalcWorkTime(activeDay.tourId, activeDay.userId);
     return newDay;
+  }
+
+  // Wznowienie zakończonego dnia po krótkiej przerwie (zob. DayStart.tsx) — zamiast tworzyć nowy
+  // rekord dnia, dopisujemy nowy log i przestawiamy ten sam dzień z powrotem na aktywny.
+  // driveTime/driveTime2/fuelBurned NIE są czyszczone — mają zostać widoczne przy ponownym
+  // zakończeniu dnia (DayStop.tsx), żeby użytkownik doliczył do nich nowy odcinek.
+  async resumeDay(id: number, userId: string, tourId: number, data: DayResumeDto): Promise<DayEntity> {
+    const day = await this.dayRepository.findOne({ where: { id, userId } });
+    if (!day) {
+      throw new BadRequestException();
+    }
+    if (day.tourId !== tourId || day.status !== dayStatusEnum.finished) {
+      throw new BadRequestException();
+    }
+    // Stare "zakończenie dnia" okazuje się z perspektywy czasu tylko przerwą.
+    await this.logsService.setType(day.stopLogId, userId, logTypeEnum.tourBrake);
+    const logData: LogCreateDto = {
+      country: data.country,
+      odometer: data.odometer,
+      placeId: data.placeId,
+      notes: data.notes,
+      place: data.place,
+      date: data.date,
+      action: data.action,
+    };
+    await this.logsService.create(logData, userId, day.tourId, logTypeEnum.tourResume);
+    await this.dayRepository.update(
+      { id: day.id },
+      {
+        status: dayStatusEnum.started,
+        stopLogId: 0,
+        // Karta zdążyła zostać "wyjęta" przy poprzednim zakończeniu dnia — skoro dzień jest
+        // wznawiany, karta musi być z powrotem włożona.
+        cardState:
+          day.cardState === dayCardStateEnum.takenOut ? dayCardStateEnum.inserted : day.cardState,
+      },
+    );
+    // Dzień bez stopData jest pomijany przy liczeniu tour.workTime (zob. getTotalWorkTimeByRoute) —
+    // odświeżamy skumulowaną wartość trasy, żeby nie liczyła już tego dnia jako zakończonego.
+    await this.toursService.recalcWorkTime(day.tourId, userId);
+    return await this.dayRepository.findOne({ where: { id: day.id } });
   }
 
   async simpleEdit(data: DaySimpleEditDto, userId: string): Promise<DayEntity> {
