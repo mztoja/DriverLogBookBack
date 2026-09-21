@@ -26,6 +26,7 @@ import { DayInterface } from '../types';
 import { DayEditDto } from './dto/day-edit.dto';
 import { DaySimpleEditDto } from './dto/day-simple-edit.dto';
 import { DayResumeDto } from './dto/day-resume.dto';
+import { DayBreakDto } from './dto/day-break.dto';
 
 @Controller('days')
 export class DaysController {
@@ -96,6 +97,16 @@ export class DaysController {
       throw new BadRequestException('activeDay');
     }
     return await this.daysService.resumeDay(Number(id), user.id, activeRoute.id, data);
+  }
+
+  @UseGuards(JwtAuthGuard, ActiveRouteGuard)
+  @Post('addBreak')
+  async addBreak(@Body() data: DayBreakDto, @UserObj() user: UserEntity): Promise<DayEntity> {
+    const activeDay = await this.daysService.getActiveDay(user.id);
+    if (!activeDay) {
+      throw new BadRequestException('dayNotExist');
+    }
+    return await this.daysService.addBreak(user.id, activeDay, data);
   }
 
   @UseGuards(JwtAuthGuard)

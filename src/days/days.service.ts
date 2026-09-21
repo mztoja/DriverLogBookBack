@@ -26,6 +26,7 @@ import { calcSecondsFromTime } from '../utlis/calcSecondsFromTime';
 import { UserEntity } from '../users/user.entity';
 import { DaySimpleEditDto } from './dto/day-simple-edit.dto';
 import { DayResumeDto } from './dto/day-resume.dto';
+import { DayBreakDto } from './dto/day-break.dto';
 
 @Injectable()
 export class DaysService {
@@ -141,6 +142,45 @@ export class DaysService {
     // odświeżamy skumulowaną wartość trasy, żeby nie liczyła już tego dnia jako zakończonego.
     await this.toursService.recalcWorkTime(day.tourId, userId);
     return await this.dayRepository.findOne({ where: { id: day.id } });
+  }
+
+  // Dodanie przerwy / zmiany karty na trwającym dniu (zob. AddBreak.tsx) — dopisuje log oraz,
+  // jeśli podano czas jazdy, dolicza go do driveTime/driveTime2 dnia i od razu do trasy (tour.driveTime).
+  // `scenario` decyduje WYŁĄCZNIE o typie loga — treść czynności i docelowy slot są już wyliczone
+  // po stronie frontu.
+  async addBreak(userId: string, activeDay: DayEntity, data: DayBreakDto): Promise<DayEntity> {
+    const typeByScenario: Record<DayBreakDto['scenario'], logTypeEnum> = {
+      break: logTypeEnum.driverBreak,
+      changeSlot1: logTypeEnum.changeCardSlot1,
+      changeSlot2: logTypeEnum.changeCardSlot2,
+    };
+    const logData: LogCreateDto = {
+      country: data.country,
+      odometer: data.odometer,
+      placeId: data.placeId,
+      notes: data.notes,
+      place: data.place,
+      date: data.date,
+      action: data.action,
+    };
+    await this.logsService.create(logData, userId, activeDay.tourId, typeByScenario[data.scenario]);
+
+    const seconds = data.driveTime ? calcSecondsFromTime(data.driveTime) : 0;
+    if (seconds > 0) {
+      if (data.slot === 2) {
+        await this.dayRepository.update(
+          { id: activeDay.id },
+          { driveTime2: addTimes(activeDay.driveTime2, seconds) },
+        );
+      } else {
+        await this.dayRepository.update(
+          { id: activeDay.id },
+          { driveTime: addTimes(activeDay.driveTime, seconds) },
+        );
+      }
+      await this.toursService.addTimesAndFuel(activeDay.tourId, userId, seconds, 0);
+    }
+    return await this.dayRepository.findOne({ where: { id: activeDay.id } });
   }
 
   async simpleEdit(data: DaySimpleEditDto, userId: string): Promise<DayEntity> {
