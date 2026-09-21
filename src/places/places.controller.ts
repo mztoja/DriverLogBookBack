@@ -8,6 +8,7 @@ import { PlaceEntity } from './place.entity';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { PlaceEditDto } from './dto/place-edit.dto';
 import { UpdateResult } from 'typeorm';
+import { GeocodeNextDto } from './dto/geocode-next.dto';
 
 @Controller('places')
 export class PlacesController {
@@ -52,5 +53,14 @@ export class PlacesController {
       throw new BadRequestException();
     }
     return await this.placesService.edit(place.id, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('geocodeNext')
+  async geocodeNext(
+    @UserObj() user: UserEntity,
+    @Body() body: GeocodeNextDto,
+  ): Promise<{ finished: boolean; placeId?: number; success?: boolean }> {
+    return await this.placesService.geocodeNext(user.id, user.lang, body.excludeIds ?? [], body.mode);
   }
 }
