@@ -58,6 +58,18 @@ export class ServicesService {
       .getMany();
   }
 
+  async getByLogId(userId: string, logId: number): Promise<ServiceInterface> {
+    return this.serviceRepository
+      .createQueryBuilder('services')
+      .where('services.userId = :userId AND services.logId = :logId', {
+        userId,
+        logId,
+      })
+      .leftJoinAndMapOne('services.logData', LogEntity, 'logId', 'services.logId = logId.id')
+      .leftJoinAndMapOne('logId.placeData', PlaceEntity, 'place', 'logId.placeId = place.id')
+      .getOne();
+  }
+
   async edit(userId: string, data: EditServiceDto): Promise<ServiceEntity> {
     const oldService = await this.serviceRepository.findOne({ where: { userId, id: data.id } });
     const log = await this.logsService.find(oldService.logId);

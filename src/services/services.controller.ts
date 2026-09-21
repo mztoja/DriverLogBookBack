@@ -32,6 +32,12 @@ export class ServicesController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('getByLogId/:logId')
+  async getByLogId(@UserObj() user: UserEntity, @Param('logId') logId: string): Promise<ServiceInterface> {
+    return await this.servicesService.getByLogId(user.id, Number(logId));
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Patch('edit')
   async edit(@Body() data: EditServiceDto, @UserObj() user: UserEntity): Promise<ServiceEntity> {
     return await this.servicesService.edit(user.id, data);
