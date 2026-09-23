@@ -7,9 +7,11 @@ import { LogsService } from '../logs/logs.service';
 import { ToursService } from '../tours/tours.service';
 import { LoadsService } from '../loads/loads.service';
 import { PlacesService } from '../places/places.service';
+import { MailService } from '../mail/mail.service';
 import { UserEntity } from '../users/user.entity';
 import {
   friendStatusEnum,
+  userLangEnum,
   FriendsListInterface,
   FriendSummaryInterface,
   FriendRequestInterface,
@@ -19,6 +21,11 @@ import {
   LogInterface,
 } from '../types';
 import { countryCenters } from '../data/countryCenters';
+import { friendInviteSentEmailTemplate } from '../templates/email/friendInviteSent';
+import { friendInviteReceivedEmailTemplate } from '../templates/email/friendInviteReceived';
+import { friendRequestAcceptedEmailTemplate } from '../templates/email/friendRequestAccepted';
+import { friendRequestDeclinedEmailTemplate } from '../templates/email/friendRequestDeclined';
+import { friendRemovedEmailTemplate } from '../templates/email/friendRemoved';
 
 @Injectable()
 export class FriendsService {
@@ -30,6 +37,7 @@ export class FriendsService {
     private toursService: ToursService,
     private loadsService: LoadsService,
     private placesService: PlacesService,
+    private mailService: MailService,
   ) {}
 
   async invite(user: UserEntity, email: string): Promise<FriendEntity> {
@@ -51,11 +59,26 @@ export class FriendsService {
     if (existing) {
       throw new BadRequestException('friendAlreadyExists');
     }
-    return await this.friendRepository.save({
+    const friendship = await this.friendRepository.save({
       requesterId: user.id,
       addresseeId: target.id,
       status: friendStatusEnum.pending,
     });
+
+    const requesterName = `${user.firstName} ${user.lastName}`;
+    const targetName = `${target.firstName} ${target.lastName}`;
+    await this.trySendMail(
+      target.email,
+      target.lang === userLangEnum.pl ? 'Zaproszenie do znajomych' : 'Friend invitation',
+      friendInviteReceivedEmailTemplate(target.lang, requesterName),
+    );
+    await this.trySendMail(
+      user.email,
+      user.lang === userLangEnum.pl ? 'Zaproszenie zostało wysłane' : 'Invitation sent',
+      friendInviteSentEmailTemplate(user.lang, targetName),
+    );
+
+    return friendship;
   }
 
   // Akceptacja przychodzącego zaproszenia — tylko adresat może zaakceptować.
@@ -66,17 +89,66 @@ export class FriendsService {
     }
     const respondedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
     await this.friendRepository.update({ id: friendship.id }, { status: friendStatusEnum.accepted, respondedAt });
+
+    const requester = await this.usersService.findById(friendship.requesterId);
+    if (requester) {
+      await this.trySendMail(
+        requester.email,
+        requester.lang === userLangEnum.pl ? 'Zaproszenie zaakceptowane' : 'Invitation accepted',
+        friendRequestAcceptedEmailTemplate(requester.lang, `${user.firstName} ${user.lastName}`),
+      );
+    }
   }
 
   // Jedna operacja na wszystkie "koniec relacji": odrzucenie przychodzącego zaproszenia,
   // anulowanie własnego wysłanego zaproszenia i usunięcie już zaakceptowanego znajomego —
   // we wszystkich trzech przypadkach użytkownik jest requesterem albo addresatem wiersza.
+  // Mail leci do DRUGIEJ strony (nie do tego, kto wywołał usunięcie): przy odrzuceniu
+  // oczekującego zaproszenia i przy usunięciu już zaakceptowanego znajomego — nie przy
+  // anulowaniu własnej wysłanej prośby (to akcja na samym sobie, nie ma kogo powiadamiać
+  // o "odrzuceniu", bo druga strona nic jeszcze nie zdążyła zrobić).
   async remove(user: UserEntity, friendshipId: number): Promise<void> {
     const friendship = await this.friendRepository.findOne({ where: { id: friendshipId } });
     if (!friendship || (friendship.requesterId !== user.id && friendship.addresseeId !== user.id)) {
       throw new BadRequestException('friendNotFound');
     }
+    const isDecliningIncomingRequest =
+      friendship.status === friendStatusEnum.pending && friendship.addresseeId === user.id;
+    const isRemovingAcceptedFriend = friendship.status === friendStatusEnum.accepted;
+    const otherUserId = friendship.requesterId === user.id ? friendship.addresseeId : friendship.requesterId;
+
     await this.friendRepository.delete({ id: friendship.id });
+
+    if (isDecliningIncomingRequest) {
+      const requester = await this.usersService.findById(otherUserId);
+      if (requester) {
+        await this.trySendMail(
+          requester.email,
+          requester.lang === userLangEnum.pl ? 'Zaproszenie odrzucone' : 'Invitation declined',
+          friendRequestDeclinedEmailTemplate(requester.lang, `${user.firstName} ${user.lastName}`),
+        );
+      }
+    } else if (isRemovingAcceptedFriend) {
+      const other = await this.usersService.findById(otherUserId);
+      if (other) {
+        await this.trySendMail(
+          other.email,
+          other.lang === userLangEnum.pl ? 'Usunięto ze znajomych' : 'Removed from friends',
+          friendRemovedEmailTemplate(other.lang, `${user.firstName} ${user.lastName}`),
+        );
+      }
+    }
+  }
+
+  // Powiadomienia mailowe są efektem ubocznym, nie warunkiem powodzenia operacji na
+  // znajomych — błąd SMTP nie może wywalać zaproszenia/akceptacji/odrzucenia (patrz
+  // analogiczne zabezpieczenie przy mailu powitalnym w UsersService.register).
+  private async trySendMail(to: string, subject: string, html: string): Promise<void> {
+    try {
+      await this.mailService.sendMail(to, subject, html);
+    } catch (mailError) {
+      console.error('Failed to send friends notification email', mailError);
+    }
   }
 
   async getFriendsData(user: UserEntity): Promise<FriendsListInterface> {

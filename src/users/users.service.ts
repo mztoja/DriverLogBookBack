@@ -11,7 +11,7 @@ import { placeTypeEnum, userLangEnum } from '../types';
 import { PlacesService } from '../places/places.service';
 import { hashPwd } from '../utlis/hash-pwd';
 import { UserUpdateDto } from './dto/user-update.dto';
-// import { MailService } from '../mail/mail.service';
+import { MailService } from '../mail/mail.service';
 import { registeredEmailTemplate } from '../templates/email/registered';
 
 @Injectable()
@@ -21,8 +21,8 @@ export class UsersService {
     private userRepository: Repository<UserEntity>,
     @Inject(PlacesService)
     private placesService: PlacesService,
-    // @Inject(MailService)
-    // private mailService: MailService,
+    @Inject(MailService)
+    private mailService: MailService,
   ) {}
 
   async register(
@@ -66,14 +66,20 @@ export class UsersService {
         { companyId: place.id },
       );
       delete user.pwdHash;
-      // await this.mailService.sendMail(
-      //   user.email,
-      //   user.lang === userLangEnum.pl
-      //     ? 'Rejestracja zakończona pomyślnie!'
-      //     : 'Registration completed successfully!'
-      //   ,
-      //   registeredEmailTemplate(user.lang)
-      // );
+      // Mail powitalny jest efektem ubocznym, nie warunkiem udanej rejestracji — błąd SMTP
+      // (np. jeszcze nieuzupełniona konfiguracja) nie może wywalać konta użytkownikowi.
+      try {
+        await this.mailService.sendMail(
+          user.email,
+          user.lang === userLangEnum.pl
+            ? 'Rejestracja zakończona pomyślnie!'
+            : 'Registration completed successfully!'
+          ,
+          registeredEmailTemplate(user.lang)
+        );
+      } catch (mailError) {
+        console.error('Failed to send registration email', mailError);
+      }
       return user;
     } catch {
       throw new InternalServerErrorException();

@@ -8,6 +8,7 @@ import { LogsModule } from '../logs/logs.module';
 import { ToursModule } from '../tours/tours.module';
 import { LoadsModule } from '../loads/loads.module';
 import { PlacesModule } from '../places/places.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { PlacesModule } from '../places/places.module';
     forwardRef(() => ToursModule),
     forwardRef(() => LoadsModule),
     forwardRef(() => PlacesModule),
+    forwardRef(() => MailModule),
   ],
   providers: [FriendsService],
   controllers: [FriendsController],
