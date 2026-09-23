@@ -121,6 +121,14 @@ export class UsersService {
     }
   }
 
+  async findById(id: string) {
+    try {
+      return await this.userRepository.findOne({ where: { id } });
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
+
   async update(
     userId: string,
     user: UserUpdateDto,

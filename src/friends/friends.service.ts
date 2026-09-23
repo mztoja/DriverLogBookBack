@@ -1,0 +1,213 @@
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { FriendEntity } from './friend.entity';
+import { UsersService } from '../users/users.service';
+import { LogsService } from '../logs/logs.service';
+import { ToursService } from '../tours/tours.service';
+import { LoadsService } from '../loads/loads.service';
+import { PlacesService } from '../places/places.service';
+import { UserEntity } from '../users/user.entity';
+import {
+  friendStatusEnum,
+  FriendsListInterface,
+  FriendSummaryInterface,
+  FriendRequestInterface,
+  FriendPositionInterface,
+  FriendCargoInterface,
+  LogInterface,
+} from '../types';
+import { countryCenters } from '../data/countryCenters';
+
+@Injectable()
+export class FriendsService {
+  constructor(
+    @InjectRepository(FriendEntity)
+    private friendRepository: Repository<FriendEntity>,
+    private usersService: UsersService,
+    private logsService: LogsService,
+    private toursService: ToursService,
+    private loadsService: LoadsService,
+    private placesService: PlacesService,
+  ) {}
+
+  async invite(user: UserEntity, email: string): Promise<FriendEntity> {
+    const target = await this.usersService.find(email);
+    if (!target) {
+      throw new BadRequestException('friendUserNotFound');
+    }
+    if (target.id === user.id) {
+      throw new BadRequestException('friendCannotInviteSelf');
+    }
+    const existing = await this.friendRepository
+      .createQueryBuilder('friend')
+      .where(
+        '(friend.requesterId = :userId AND friend.addresseeId = :targetId) OR ' +
+          '(friend.requesterId = :targetId AND friend.addresseeId = :userId)',
+        { userId: user.id, targetId: target.id },
+      )
+      .getOne();
+    if (existing) {
+      throw new BadRequestException('friendAlreadyExists');
+    }
+    return await this.friendRepository.save({
+      requesterId: user.id,
+      addresseeId: target.id,
+      status: friendStatusEnum.pending,
+    });
+  }
+
+  // Akceptacja przychodzącego zaproszenia — tylko adresat może zaakceptować.
+  async accept(user: UserEntity, friendshipId: number): Promise<void> {
+    const friendship = await this.friendRepository.findOne({ where: { id: friendshipId } });
+    if (!friendship || friendship.addresseeId !== user.id) {
+      throw new BadRequestException('friendNotFound');
+    }
+    const respondedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    await this.friendRepository.update({ id: friendship.id }, { status: friendStatusEnum.accepted, respondedAt });
+  }
+
+  // Jedna operacja na wszystkie "koniec relacji": odrzucenie przychodzącego zaproszenia,
+  // anulowanie własnego wysłanego zaproszenia i usunięcie już zaakceptowanego znajomego —
+  // we wszystkich trzech przypadkach użytkownik jest requesterem albo addresatem wiersza.
+  async remove(user: UserEntity, friendshipId: number): Promise<void> {
+    const friendship = await this.friendRepository.findOne({ where: { id: friendshipId } });
+    if (!friendship || (friendship.requesterId !== user.id && friendship.addresseeId !== user.id)) {
+      throw new BadRequestException('friendNotFound');
+    }
+    await this.friendRepository.delete({ id: friendship.id });
+  }
+
+  async getFriendsData(user: UserEntity): Promise<FriendsListInterface> {
+    const acceptedRows = await this.friendRepository
+      .createQueryBuilder('friend')
+      .where(
+        '(friend.requesterId = :userId OR friend.addresseeId = :userId) AND friend.status = :status',
+        { userId: user.id, status: friendStatusEnum.accepted },
+      )
+      .getMany();
+
+    const incomingRows = await this.friendRepository.find({
+      where: { addresseeId: user.id, status: friendStatusEnum.pending },
+    });
+    const outgoingRows = await this.friendRepository.find({
+      where: { requesterId: user.id, status: friendStatusEnum.pending },
+    });
+
+    const accepted = await Promise.all(
+      acceptedRows.map((row) => this.buildFriendSummary(user.id, row)),
+    );
+    const incoming = await Promise.all(
+      incomingRows.map((row) => this.buildFriendRequest(row.id, row.requesterId, row.createdAt)),
+    );
+    const outgoing = await Promise.all(
+      outgoingRows.map((row) => this.buildFriendRequest(row.id, row.addresseeId, row.createdAt)),
+    );
+
+    return { accepted, incoming, outgoing };
+  }
+
+  private async buildFriendRequest(
+    friendshipId: number,
+    otherUserId: string,
+    createdAt: string,
+  ): Promise<FriendRequestInterface> {
+    const other = await this.usersService.findById(otherUserId);
+    return {
+      friendshipId,
+      userId: otherUserId,
+      email: other?.email ?? '',
+      firstName: other?.firstName ?? '',
+      lastName: other?.lastName ?? '',
+      createdAt,
+    };
+  }
+
+  private async buildFriendSummary(userId: string, row: FriendEntity): Promise<FriendSummaryInterface> {
+    const otherUserId = row.requesterId === userId ? row.addresseeId : row.requesterId;
+    const other = await this.usersService.findById(otherUserId);
+
+    const lastLog = await this.logsService.getLastLog(otherUserId);
+    const position = await this.resolvePosition(lastLog);
+
+    // Cel podróży (users.markedDepart) — niezależny od tego, czy akurat trwa trasa, dlatego
+    // sprawdzany osobno od ładunków poniżej.
+    let targetPlace: string | null = null;
+    if (other?.markedDepart) {
+      const marked = await this.placesService.getOne(otherUserId, other.markedDepart);
+      if (marked) {
+        targetPlace = `${marked.city} (${marked.name})`;
+      }
+    }
+
+    // Miejsca docelowe WSZYSTKICH nierozładowanych ładunków (może być ich kilka) — tylko
+    // w trakcie aktywnej trasy, bo poza nią nie ma "aktualnie przewożonego ładunku".
+    let destinations: string[] = [];
+    const activeRoute = await this.toursService.getActiveRoute(otherUserId);
+    if (activeRoute) {
+      const loads = await this.loadsService.getNotUnloadedLoads(otherUserId);
+      destinations = loads
+        .filter((load) => load.receiverData)
+        .map((load) => `${load.receiverData.city} (${load.receiverData.name})`);
+    }
+
+    const cargo: FriendCargoInterface | null =
+      targetPlace || destinations.length > 0 ? { targetPlace, destinations } : null;
+
+    return {
+      friendshipId: row.id,
+      userId: otherUserId,
+      email: other?.email ?? '',
+      firstName: other?.firstName ?? '',
+      lastName: other?.lastName ?? '',
+      position,
+      cargo,
+    };
+  }
+
+  // Pozycja = miejsce z najnowszego wpisu użytkownika. Trzy poziomy dokładności, od najlepszej:
+  // 1) wpis wskazuje na zapisane miejsce z listy adresowej z wpisanymi współrzędnymi — użyj ich.
+  // 2) wpis ma tylko wolny tekst (place/country), bo miejsce NIE jest zapisane w liście adresowej
+  //    (placeId = 0) — ustal współrzędne tą samą metodą co automatyczne uzupełnianie współrzędnych
+  //    miejsc (PlacesService.geocodeAddress, Nominatim).
+  // 3) geokodowanie się nie powiodło — wpis i tak zawiera kraj, więc pinezka ląduje w jego środku
+  //    (countryCenters) zamiast nie pokazywać pozycji wcale.
+  // Miejsce zapisane w liście adresowej, ale jeszcze bez własnych współrzędnych (właściciel po
+  // prostu jeszcze go nie zgeokodował) celowo NIE wchodzi w te dwa dodatkowe poziomy — to osobny,
+  // ręczny proces po stronie właściciela miejsca (patrz PlacesMap „Geokoduj").
+  private async resolvePosition(lastLog: LogInterface | null): Promise<FriendPositionInterface | null> {
+    if (!lastLog) {
+      return null;
+    }
+
+    if (
+      lastLog.placeData &&
+      (Number(lastLog.placeData.lat) > 0.001 || Number(lastLog.placeData.lon) > 0.001)
+    ) {
+      return {
+        placeName: lastLog.placeData.name,
+        city: lastLog.placeData.city,
+        lat: Number(lastLog.placeData.lat),
+        lon: Number(lastLog.placeData.lon),
+        date: lastLog.date,
+      };
+    }
+
+    if (!lastLog.placeData && lastLog.place) {
+      const geocoded = await this.placesService.geocodeAddress({
+        city: lastLog.place,
+        country: lastLog.country,
+      });
+      if (geocoded) {
+        return { placeName: lastLog.place, city: '', lat: geocoded.lat, lon: geocoded.lon, date: lastLog.date };
+      }
+
+      const center = countryCenters[(lastLog.country ?? '').toUpperCase()];
+      if (center) {
+        return { placeName: lastLog.place, city: '', lat: center.lat, lon: center.lon, date: lastLog.date };
+      }
+    }
+
+    return null;
+  }
+}

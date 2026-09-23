@@ -153,15 +153,24 @@ export class PlacesService {
     return { finished: false, placeId: next.id, success: false };
   }
 
-  private async geocodeAddress(place: PlaceEntity): Promise<{ lat: number; lon: number } | null> {
+  // Publiczna (nie tylko dla geocodeNext) — używana też przez FriendsService, żeby pozycję
+  // znajomego na podstawie miejsca spoza listy adresowej (samo wolne pole `place`/`country`
+  // na logu, bez zapisanego PlaceEntity) ustalać dokładnie tą samą metodą co automatyczne
+  // uzupełnianie współrzędnych miejsc.
+  async geocodeAddress(address: {
+    street?: string;
+    code?: string;
+    city?: string;
+    country?: string;
+  }): Promise<{ lat: number; lon: number } | null> {
     try {
       const params = new URLSearchParams({
         format: 'json',
         limit: '1',
-        street: place.street ?? '',
-        postalcode: place.code ?? '',
-        city: place.city ?? '',
-        countrycodes: (place.country ?? '').toLowerCase(),
+        street: address.street ?? '',
+        postalcode: address.code ?? '',
+        city: address.city ?? '',
+        countrycodes: (address.country ?? '').toLowerCase(),
       });
       const res = await fetch(`${NOMINATIM_URL}?${params.toString()}`, {
         headers: { 'User-Agent': NOMINATIM_USER_AGENT },
