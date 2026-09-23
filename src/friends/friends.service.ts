@@ -15,6 +15,7 @@ import {
   FriendRequestInterface,
   FriendPositionInterface,
   FriendCargoInterface,
+  SelfSummaryInterface,
   LogInterface,
 } from '../types';
 import { countryCenters } from '../data/countryCenters';
@@ -103,8 +104,9 @@ export class FriendsService {
     const outgoing = await Promise.all(
       outgoingRows.map((row) => this.buildFriendRequest(row.id, row.addresseeId, row.createdAt)),
     );
+    const self = await this.buildSelfSummary(user);
 
-    return { accepted, incoming, outgoing };
+    return { accepted, incoming, outgoing, self };
   }
 
   private async buildFriendRequest(
@@ -126,33 +128,7 @@ export class FriendsService {
   private async buildFriendSummary(userId: string, row: FriendEntity): Promise<FriendSummaryInterface> {
     const otherUserId = row.requesterId === userId ? row.addresseeId : row.requesterId;
     const other = await this.usersService.findById(otherUserId);
-
-    const lastLog = await this.logsService.getLastLog(otherUserId);
-    const position = await this.resolvePosition(lastLog);
-
-    // Cel podróży (users.markedDepart) — niezależny od tego, czy akurat trwa trasa, dlatego
-    // sprawdzany osobno od ładunków poniżej.
-    let targetPlace: string | null = null;
-    if (other?.markedDepart) {
-      const marked = await this.placesService.getOne(otherUserId, other.markedDepart);
-      if (marked) {
-        targetPlace = `${marked.city} (${marked.name})`;
-      }
-    }
-
-    // Miejsca docelowe WSZYSTKICH nierozładowanych ładunków (może być ich kilka) — tylko
-    // w trakcie aktywnej trasy, bo poza nią nie ma "aktualnie przewożonego ładunku".
-    let destinations: string[] = [];
-    const activeRoute = await this.toursService.getActiveRoute(otherUserId);
-    if (activeRoute) {
-      const loads = await this.loadsService.getNotUnloadedLoads(otherUserId);
-      destinations = loads
-        .filter((load) => load.receiverData)
-        .map((load) => `${load.receiverData.city} (${load.receiverData.name})`);
-    }
-
-    const cargo: FriendCargoInterface | null =
-      targetPlace || destinations.length > 0 ? { targetPlace, destinations } : null;
+    const { position, cargo } = await this.resolvePositionAndCargo(otherUserId, other?.markedDepart ?? 0);
 
     return {
       friendshipId: row.id,
@@ -163,6 +139,54 @@ export class FriendsService {
       position,
       cargo,
     };
+  }
+
+  // Ta sama pozycja/cel co u znajomych, ale dla samego zalogowanego użytkownika — żeby na mapie
+  // obok pinezek znajomych była widoczna też własna pozycja.
+  private async buildSelfSummary(user: UserEntity): Promise<SelfSummaryInterface> {
+    const { position, cargo } = await this.resolvePositionAndCargo(user.id, user.markedDepart);
+    return {
+      userId: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      position,
+      cargo,
+    };
+  }
+
+  private async resolvePositionAndCargo(
+    userId: string,
+    markedDepart: number,
+  ): Promise<{ position: FriendPositionInterface | null; cargo: FriendCargoInterface | null }> {
+    const lastLog = await this.logsService.getLastLog(userId);
+    const position = await this.resolvePosition(lastLog);
+
+    // Cel podróży (users.markedDepart) — niezależny od tego, czy akurat trwa trasa, dlatego
+    // sprawdzany osobno od ładunków poniżej.
+    let targetPlace: string | null = null;
+    if (markedDepart) {
+      const marked = await this.placesService.getOne(userId, markedDepart);
+      if (marked) {
+        targetPlace = `${marked.city} (${marked.name})`;
+      }
+    }
+
+    // Miejsca docelowe WSZYSTKICH nierozładowanych ładunków (może być ich kilka) — tylko
+    // w trakcie aktywnej trasy, bo poza nią nie ma "aktualnie przewożonego ładunku".
+    let destinations: string[] = [];
+    const activeRoute = await this.toursService.getActiveRoute(userId);
+    if (activeRoute) {
+      const loads = await this.loadsService.getNotUnloadedLoads(userId);
+      destinations = loads
+        .filter((load) => load.receiverData)
+        .map((load) => `${load.receiverData.city} (${load.receiverData.name})`);
+    }
+
+    const cargo: FriendCargoInterface | null =
+      targetPlace || destinations.length > 0 ? { targetPlace, destinations } : null;
+
+    return { position, cargo };
   }
 
   // Pozycja = miejsce z najnowszego wpisu użytkownika. Trzy poziomy dokładności, od najlepszej:
