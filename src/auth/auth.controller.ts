@@ -17,6 +17,9 @@ import { UserInterface } from '../types';
 import { UserObj } from '../decorators/user-obj.decorator';
 import { UserEntity } from '../users/user.entity';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { AuthForgotPasswordDto } from './dto/auth-forgot-password.dto';
+import { AuthVerifyResetCodeDto } from './dto/auth-verify-reset-code.dto';
+import { AuthResetPasswordDto } from './dto/auth-reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -49,5 +52,26 @@ export class AuthController {
   @Get('/logout')
   async logout(@UserObj() user: UserEntity, @Res() res: Response) {
     return this.authService.logout(user, res);
+  }
+
+  @Post('/forgotPassword')
+  @UsePipes(new ValidationPipe())
+  async forgotPassword(@Body() dto: AuthForgotPasswordDto): Promise<{ success: boolean }> {
+    await this.authService.forgotPassword(dto.email);
+    return { success: true };
+  }
+
+  @Post('/verifyResetCode')
+  @UsePipes(new ValidationPipe())
+  async verifyResetCode(@Body() dto: AuthVerifyResetCodeDto): Promise<{ success: boolean }> {
+    await this.authService.verifyResetCode(dto.email, dto.code);
+    return { success: true };
+  }
+
+  @Post('/resetPassword')
+  @UsePipes(new ValidationPipe(), new CheckPasswordPipe())
+  async resetPassword(@Body() dto: AuthResetPasswordDto): Promise<{ success: boolean }> {
+    await this.authService.resetPassword(dto.email, dto.code, dto.password);
+    return { success: true };
   }
 }

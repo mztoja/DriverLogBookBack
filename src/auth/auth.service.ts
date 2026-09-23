@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
@@ -13,7 +14,9 @@ import { JwtPayload } from './jwt.strategy';
 import { config } from '../config/config';
 import { sign, verify } from 'jsonwebtoken';
 import { v4 as uuid } from 'uuid';
-import { UserInterface } from '../types';
+import { UserInterface, userLangEnum } from '../types';
+import { MailService } from '../mail/mail.service';
+import { passwordResetCodeEmailTemplate } from '../templates/email/passwordResetCode';
 
 const baseCookieOptions: CookieOptions = {
   secure: config.secure,
@@ -42,6 +45,7 @@ export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
+    private mailService: MailService,
   ) {}
 
   private createToken(currentTokenId: string): {
@@ -209,6 +213,55 @@ export class AuthService {
         .json({ message: 'logged out' });
     } catch {
       throw new InternalServerErrorException();
+    }
+  }
+
+  // "Zapomniałem hasła": unieważnia bieżącą sesję (currentTokenId/refreshToken), zapisuje
+  // 6-cyfrowy kod W MIEJSCU currentTokenId (jednorazowy, krótkotrwały "token" resetu — dopóki
+  // ktoś nie zaloguje się/zresetuje hasła, i tak nic nim nie zweryfikuje jako JWT) i wysyła go
+  // mailem. Milczy, gdy e-mail nie istnieje — nie zdradzamy, czy dane konto jest zarejestrowane.
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      return;
+    }
+    const code = this.generateResetCode();
+    await this.userRepository.update({ id: user.id }, { currentTokenId: code, refreshToken: null });
+    await this.trySendMail(
+      user.email,
+      user.lang === userLangEnum.pl ? 'Kod do zresetowania hasła' : 'Password reset code',
+      passwordResetCodeEmailTemplate(user.lang, code),
+    );
+  }
+
+  // Tylko sprawdza kod — bez efektów ubocznych. Front woła to zanim pokaże pole nowego hasła;
+  // faktyczna zmiana hasła (resetPassword) i tak weryfikuje kod jeszcze raz na własną rękę.
+  async verifyResetCode(email: string, code: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { email, currentTokenId: code } });
+    if (!user) {
+      throw new BadRequestException('invalidResetCode');
+    }
+  }
+
+  async resetPassword(email: string, code: string, password: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { email, currentTokenId: code } });
+    if (!user) {
+      throw new BadRequestException('invalidResetCode');
+    }
+    await this.userRepository.update({ id: user.id }, { pwdHash: hashPwd(password), currentTokenId: null });
+  }
+
+  private generateResetCode(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  // Powiadomienie mailowe jest efektem ubocznym, nie warunkiem powodzenia — błąd SMTP nie może
+  // uniemożliwić samego zainicjowania resetu (patrz analogiczne zabezpieczenie w UsersService).
+  private async trySendMail(to: string, subject: string, html: string): Promise<void> {
+    try {
+      await this.mailService.sendMail(to, subject, html);
+    } catch (mailError) {
+      console.error('Failed to send password reset email', mailError);
     }
   }
 }
