@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, In, Not, Repository } from 'typeorm';
+import { Brackets, In, MoreThan, Not, Repository } from 'typeorm';
 import { LogEntity } from './log.entity';
 import { LogCreateDto } from './dto/log-create.dto';
 import { LogInterface, LogListResponse, logTypeEnum, tourStatusEnum, TourInterface } from '../types';
@@ -73,6 +73,28 @@ export class LogsService {
     const day = await this.daysService.getByLogId(userId, old.id);
     if (day) {
       await this.daysService.addDistance(day.id, userId, distanceDiff);
+    }
+
+    // Numer naczepy dla "podpięcia naczepy" jest wpisany w tekście action (np. "Podpięto
+    // naczepę: ABC123"), nie w osobnym polu — tours.trailer trzeba doliczyć ręcznie, inaczej
+    // zmiana numeru przy edycji tej czynności nigdzie się nie propaguje. Aktualizujemy
+    // tours.trailer tylko wtedy, gdy to WCIĄŻ ten log rządzi bieżącą naczepą trasy (czyli nie ma
+    // po nim żadnego późniejszego podpięcia/odpięcia) — inaczej odpowiadałby już za historyczny,
+    // a nie bieżący stan.
+    if (old.type === logTypeEnum.attachTrailer) {
+      const laterTrailerLog = await this.logRepository.findOne({
+        where: {
+          userId,
+          tourId: old.tourId,
+          type: In([logTypeEnum.attachTrailer, logTypeEnum.detachTrailer]),
+          id: MoreThan(old.id),
+        },
+      });
+      if (!laterTrailerLog) {
+        const trailerPart = data.action.split(': ')[1];
+        const newTrailer = trailerPart ? trailerPart.replace(/\s/g, '').toUpperCase() : null;
+        await this.toursService.changeTrailer(old.tourId, newTrailer);
+      }
     }
 
     await this.logRepository.update(
