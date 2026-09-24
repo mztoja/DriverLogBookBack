@@ -10,12 +10,30 @@ import { PlaceEditDto } from './dto/place-edit.dto';
 // której kafelki już wyświetla mapa miejsc. Polityka użycia: max 1 zapytanie/sek
 // i wymagany nagłówek User-Agent identyfikujący aplikację.
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
+const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
+// limit pola `place` na logu (front/app: placeHelper) – nazwa z geokodowania musi się w nim zmieścić
+const PLACE_MAX_LENGTH = 30;
 const NOMINATIM_USER_AGENT = 'DriverLogBook/3.4 (+https://mzservices.pl/logbook)';
 const NOMINATIM_DELAY_MS = 1100;
 
 interface NominatimResult {
   lat: string;
   lon: string;
+}
+
+interface NominatimReverseResult {
+  name?: string;
+  address?: {
+    city?: string;
+    town?: string;
+    village?: string;
+    hamlet?: string;
+    municipality?: string;
+    suburb?: string;
+    county?: string;
+    state?: string;
+    country_code?: string;
+  };
 }
 
 @Injectable()
@@ -188,6 +206,43 @@ export class PlacesService {
         return null;
       }
       return { lat, lon };
+    } catch {
+      return null;
+    }
+  }
+
+  // Pozycja GPS -> nazwa miejscowości + kod kraju (wolne pole `place` na logu, gdy w pobliżu nie ma
+  // miejsca z listy adresowej – to sprawdza klient). Ten sam dostawca i User-Agent co geocodeAddress.
+  async reverseGeocode(
+    lat: number,
+    lon: number,
+    lang: userLangEnum,
+  ): Promise<{ place: string; country: string } | null> {
+    try {
+      const params = new URLSearchParams({
+        format: 'jsonv2',
+        lat: lat.toString(),
+        lon: lon.toString(),
+        zoom: '14', // poziom miejscowości – bez numerów domów
+        addressdetails: '1',
+        'accept-language': lang === userLangEnum.pl ? 'pl' : 'en',
+      });
+      const res = await fetch(`${NOMINATIM_REVERSE_URL}?${params.toString()}`, {
+        headers: { 'User-Agent': NOMINATIM_USER_AGENT },
+      });
+      if (!res.ok) {
+        return null;
+      }
+      const data = (await res.json()) as NominatimReverseResult;
+      const a = data?.address ?? {};
+      const locality = a.city ?? a.town ?? a.village ?? a.hamlet ?? a.municipality ?? a.suburb ?? data?.name ?? a.county ?? a.state;
+      if (!locality) {
+        return null;
+      }
+      return {
+        place: locality.slice(0, PLACE_MAX_LENGTH).trim(),
+        country: (a.country_code ?? '').toUpperCase(),
+      };
     } catch {
       return null;
     }

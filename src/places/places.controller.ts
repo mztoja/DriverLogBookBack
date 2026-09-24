@@ -9,6 +9,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { PlaceEditDto } from './dto/place-edit.dto';
 import { UpdateResult } from 'typeorm';
 import { GeocodeNextDto } from './dto/geocode-next.dto';
+import { ReverseGeocodeDto } from './dto/reverse-geocode.dto';
 
 @Controller('places')
 export class PlacesController {
@@ -62,5 +63,18 @@ export class PlacesController {
     @Body() body: GeocodeNextDto,
   ): Promise<{ finished: boolean; placeId?: number; success?: boolean }> {
     return await this.placesService.geocodeNext(user.id, user.lang, body.excludeIds ?? [], body.mode);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('reverseGeocode')
+  async reverseGeocode(
+    @UserObj() user: UserEntity,
+    @Body() body: ReverseGeocodeDto,
+  ): Promise<{ place: string; country: string }> {
+    const result = await this.placesService.reverseGeocode(body.lat, body.lon, user.lang);
+    if (!result) {
+      throw new BadRequestException('reverseGeocodeFailed');
+    }
+    return result;
   }
 }
