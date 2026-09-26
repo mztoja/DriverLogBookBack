@@ -600,11 +600,13 @@ export class ToursService {
     const stopLog = data.stopData.id === 0 ? null : await this.logsService.edit(data.stopData, user.id);
     const distance = Number(data.distance);
 
-    const allDaysTime = subtractDatesToTime(stopLog.date, startLog.date);
-    const allDays = calculateDaysFromTime(allDaysTime);
     const workTime = await this.daysService.getTotalWorkTimeByRoute(user.id, oldTour.id);
     const daysOnDuty = calculateDaysFromTime(workTime);
-    const daysOffDuty = allDays - daysOnDuty;
+    // trasa w toku nie ma jeszcze czynności końcowej (stopLog = null) — wtedy dni poza pracą 0,
+    // tak jak w calcDaysOnDuty (wcześniej stopLog.date wywracało edycję trwającej trasy)
+    const daysOffDuty = stopLog
+      ? calculateDaysFromTime(subtractDatesToTime(stopLog.date, startLog.date)) - daysOnDuty
+      : 0;
 
     // burnedFuelReal = fuelStateBefore + totalRefuel - fuelStateAfter (zob. finish()) —
     // przy edycji przeliczamy o deltę obu odczytów, zachowując ten sam znak.
@@ -616,6 +618,8 @@ export class ToursService {
       { id: oldTour.id },
       {
         burnedFuelReal: fuel,
+        // daysOnDuty było liczone, ale nie zapisywane — po edycji dat zostawała stara wartość
+        daysOnDuty,
         daysOffDuty,
         distance,
         workTime,
