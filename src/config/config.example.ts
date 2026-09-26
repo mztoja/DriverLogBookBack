@@ -16,11 +16,12 @@ export const config = {
   refreshTokenExpirationTime: 60 * 60 * 24 * 30, // 30 dni
   refreshCookieName: 'refreshToken',
   cookieSameSite: 'lax' as const,
-  mailerAuthUser: 'admin',
-  mailerAuthPassword: 'password',
-  mailerHost: 'localhost',
-  mailerSmtpPort: 2500,
-  mailerFrom: 'App@DriverLogBook.com',
+    mailerHost: '',
+    mailerSmtpPort: 465,
+    mailerSecure: true,
+    mailerAuthUser: '',
+    mailerAuthPassword: '',
+    mailerFrom: '',
   secure: true, // if you use https then change it to TRUE !!!!
   domain: 'localhost',
   httpOnly: false,

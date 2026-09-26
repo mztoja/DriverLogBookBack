@@ -4,4 +4,9 @@ export interface FriendCargoInterface {
   targetPlace: string | null;
   // Miejsca docelowe WSZYSTKICH aktualnie nierozładowanych ładunków (może być ich kilka).
   destinations: string[];
+  // Czy trwa trasa – ładunek bez odbiorcy albo jazda bez ładunku to nadal aktywna trasa,
+  // więc nie wolno wtedy pokazywać „brak celu i aktywnej trasy".
+  activeTour: boolean;
+  // Nierozładowane ładunki bez podanego odbiorcy (nie da się podać ich miejsca docelowego).
+  loadsWithoutReceiver: number;
 }

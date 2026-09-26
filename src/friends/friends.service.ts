@@ -200,7 +200,7 @@ export class FriendsService {
   private async buildFriendSummary(userId: string, row: FriendEntity): Promise<FriendSummaryInterface> {
     const otherUserId = row.requesterId === userId ? row.addresseeId : row.requesterId;
     const other = await this.usersService.findById(otherUserId);
-    const { position, cargo } = await this.resolvePositionAndCargo(otherUserId, other?.markedDepart ?? 0);
+    const { position, cargo, lastActivity } = await this.resolvePositionAndCargo(otherUserId, other?.markedDepart ?? 0);
 
     return {
       friendshipId: row.id,
@@ -209,6 +209,7 @@ export class FriendsService {
       firstName: other?.firstName ?? '',
       lastName: other?.lastName ?? '',
       position,
+      lastActivity,
       cargo,
     };
   }
@@ -216,13 +217,14 @@ export class FriendsService {
   // Ta sama pozycja/cel co u znajomych, ale dla samego zalogowanego użytkownika — żeby na mapie
   // obok pinezek znajomych była widoczna też własna pozycja.
   private async buildSelfSummary(user: UserEntity): Promise<SelfSummaryInterface> {
-    const { position, cargo } = await this.resolvePositionAndCargo(user.id, user.markedDepart);
+    const { position, cargo, lastActivity } = await this.resolvePositionAndCargo(user.id, user.markedDepart);
     return {
       userId: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       position,
+      lastActivity,
       cargo,
     };
   }
@@ -230,7 +232,11 @@ export class FriendsService {
   private async resolvePositionAndCargo(
     userId: string,
     markedDepart: number,
-  ): Promise<{ position: FriendPositionInterface | null; cargo: FriendCargoInterface | null }> {
+  ): Promise<{
+    position: FriendPositionInterface | null;
+    cargo: FriendCargoInterface | null;
+    lastActivity: string | null;
+  }> {
     const lastLog = await this.logsService.getLastLog(userId);
     const position = await this.resolvePosition(lastLog);
 
@@ -247,63 +253,92 @@ export class FriendsService {
     // Miejsca docelowe WSZYSTKICH nierozładowanych ładunków (może być ich kilka) — tylko
     // w trakcie aktywnej trasy, bo poza nią nie ma "aktualnie przewożonego ładunku".
     let destinations: string[] = [];
+    let loadsWithoutReceiver = 0;
     const activeRoute = await this.toursService.getActiveRoute(userId);
     if (activeRoute) {
       const loads = await this.loadsService.getNotUnloadedLoads(userId);
       destinations = loads
         .filter((load) => load.receiverData)
         .map((load) => `${load.receiverData.city} (${load.receiverData.name})`);
+      // ładunki bez odbiorcy też są przewożone – wcześniej znikały i przy braku innych danych
+      // mapa pokazywała „brak celu i aktywnej trasy" mimo trwającej trasy
+      loadsWithoutReceiver = loads.filter((load) => !load.receiverData).length;
     }
 
     const cargo: FriendCargoInterface | null =
-      targetPlace || destinations.length > 0 ? { targetPlace, destinations } : null;
+      targetPlace || activeRoute
+        ? { targetPlace, destinations, activeTour: !!activeRoute, loadsWithoutReceiver }
+        : null;
 
-    return { position, cargo };
+    return { position, cargo, lastActivity: lastLog?.date ?? null };
   }
 
-  // Pozycja = miejsce z najnowszego wpisu użytkownika. Trzy poziomy dokładności, od najlepszej:
-  // 1) wpis wskazuje na zapisane miejsce z listy adresowej z wpisanymi współrzędnymi — użyj ich.
-  // 2) wpis ma tylko wolny tekst (place/country), bo miejsce NIE jest zapisane w liście adresowej
-  //    (placeId = 0) — ustal współrzędne tą samą metodą co automatyczne uzupełnianie współrzędnych
-  //    miejsc (PlacesService.geocodeAddress, Nominatim).
-  // 3) geokodowanie się nie powiodło — wpis i tak zawiera kraj, więc pinezka ląduje w jego środku
+  // Pozycja = miejsce z najnowszego wpisu użytkownika. Poziomy dokładności, od najlepszej:
+  // 1) wpis wskazuje na zapisane miejsce z listy adresowej z OBIEMA współrzędnymi — użyj ich.
+  // 2) miejsce z listy adresowej bez współrzędnych (albo tylko z jedną) — geokodowanie po jego adresie
+  //    (ulica, kod, miasto, kraj), a gdy się nie uda, po samym mieście. Wcześniej taka pozycja była
+  //    pomijana, więc znajomy znikał z mapy tylko dlatego, że miejsce nie miało wpisanych GPS.
+  // 3) wpis ma tylko wolny tekst (place/country, placeId = 0) — geokodowanie po nazwie miejsca.
+  // 4) geokodowanie się nie powiodło — wpis i tak zawiera kraj, więc pinezka ląduje w jego środku
   //    (countryCenters) zamiast nie pokazywać pozycji wcale.
-  // Miejsce zapisane w liście adresowej, ale jeszcze bez własnych współrzędnych (właściciel po
-  // prostu jeszcze go nie zgeokodował) celowo NIE wchodzi w te dwa dodatkowe poziomy — to osobny,
-  // ręczny proces po stronie właściciela miejsca (patrz PlacesMap „Geokoduj").
   private async resolvePosition(lastLog: LogInterface | null): Promise<FriendPositionInterface | null> {
     if (!lastLog) {
       return null;
     }
+    const place = lastLog.placeData;
 
-    if (
-      lastLog.placeData &&
-      (Number(lastLog.placeData.lat) > 0.001 || Number(lastLog.placeData.lon) > 0.001)
-    ) {
+    if (place && Number(place.lat) > 0.001 && Number(place.lon) > 0.001) {
       return {
-        placeName: lastLog.placeData.name,
-        city: lastLog.placeData.city,
-        lat: Number(lastLog.placeData.lat),
-        lon: Number(lastLog.placeData.lon),
+        placeName: place.name,
+        city: place.city,
+        lat: Number(place.lat),
+        lon: Number(place.lon),
         date: lastLog.date,
       };
     }
 
-    if (!lastLog.placeData && lastLog.place) {
-      const geocoded = await this.placesService.geocodeAddress({
-        city: lastLog.place,
-        country: lastLog.country,
-      });
-      if (geocoded) {
-        return { placeName: lastLog.place, city: '', lat: geocoded.lat, lon: geocoded.lon, date: lastLog.date };
+    if (place) {
+      const geocoded =
+        (await this.cachedGeocode({ street: place.street, code: place.code, city: place.city, country: place.country })) ??
+        (await this.cachedGeocode({ city: place.city, country: place.country }));
+      const point = geocoded ?? countryCenters[(place.country || lastLog.country || '').toUpperCase()];
+      if (point) {
+        return { placeName: place.name, city: place.city, lat: point.lat, lon: point.lon, date: lastLog.date };
       }
+      return null;
+    }
 
-      const center = countryCenters[(lastLog.country ?? '').toUpperCase()];
-      if (center) {
-        return { placeName: lastLog.place, city: '', lat: center.lat, lon: center.lon, date: lastLog.date };
+    if (lastLog.place) {
+      const geocoded = await this.cachedGeocode({ city: lastLog.place, country: lastLog.country });
+      const point = geocoded ?? countryCenters[(lastLog.country ?? '').toUpperCase()];
+      if (point) {
+        return { placeName: lastLog.place, city: '', lat: point.lat, lon: point.lon, date: lastLog.date };
       }
     }
 
     return null;
+  }
+
+  // Geokodowanie z pamięcią podręczną – lista znajomych jest pobierana przy każdym wejściu na mapę,
+  // a Nominatim dopuszcza ~1 zapytanie/s. Trafienia trzymamy 12 h, nieudane próby 1 h.
+  private readonly geocodeCache = new Map<string, { value: { lat: number; lon: number } | null; expires: number }>();
+
+  private async cachedGeocode(address: {
+    street?: string;
+    code?: string;
+    city?: string;
+    country?: string;
+  }): Promise<{ lat: number; lon: number } | null> {
+    if (!address.city && !address.street) {
+      return null;
+    }
+    const key = JSON.stringify([address.street ?? '', address.code ?? '', address.city ?? '', address.country ?? '']);
+    const hit = this.geocodeCache.get(key);
+    if (hit && hit.expires > Date.now()) {
+      return hit.value;
+    }
+    const value = await this.placesService.geocodeAddress(address);
+    this.geocodeCache.set(key, { value, expires: Date.now() + (value ? 12 : 1) * 3600 * 1000 });
+    return value;
   }
 }
