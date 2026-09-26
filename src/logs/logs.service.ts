@@ -109,6 +109,14 @@ export class LogsService {
         notes: data.notes === '' ? null : data.notes,
       },
     );
+    // Zmiana daty czynności rozpoczęcia/zakończenia dnia albo trasy zmienia czas pracy
+    // (liczony z dat) i liczbę dni — bez tego tour.workTime/daysOnDuty zostawały stare
+    // i trafiały tak do rozliczenia miesiąca.
+    const dateChanged = new Date(data.date).getTime() !== new Date(old.date).getTime();
+    const isTourEdge = old.id === tour.startLogId || (tour.stopLogId !== 0 && old.id === tour.stopLogId);
+    if (dateChanged && (day || isTourEdge)) {
+      await this.toursService.calcDaysOnDuty(tour.id, userId);
+    }
     return await this.logRepository.findOne({ where: { id: old.id } });
   }
 

@@ -28,8 +28,11 @@ export const addTimes = (time1: string, time2: number): string => {
   // const hours = time.getHours().toString().padStart(2, '0');
   // const minutes = time.getMinutes().toString().padStart(2, '0');
   // return `${hours}:${minutes}`;
+  // Znak liczony osobno — Math.floor na ujemnej sumie dawał śmieci typu "-1:-59".
   const timeInSeconds = calcSecondsFromTime(time1) + time2;
-  const hours = Math.floor(timeInSeconds / 3600);
-  const minutes = Math.floor((timeInSeconds % 3600) / 60);
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  const sign = timeInSeconds < 0 ? '-' : '';
+  const abs = Math.abs(timeInSeconds);
+  const hours = Math.floor(abs / 3600);
+  const minutes = Math.floor((abs % 3600) / 60);
+  return `${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };

@@ -524,6 +524,25 @@ export class ToursService {
     return workTime;
   }
 
+  // Czas jazdy trasy świeżo z dni (driveTime + driveTime2). Na co dzień tour.driveTime jest
+  // doliczany przyrostowo (addTimesAndFuel), więc może się rozjechać — przed rozliczeniem
+  // miesiąca przeliczamy go od zera.
+  async recalcDriveTime(id: number, userId: string): Promise<string> {
+    const driveTime = await this.daysService.getTotalDriveTimeByRoute(userId, id);
+    await this.tourRepository.update({ id, userId }, { driveTime });
+    return driveTime;
+  }
+
+  // Pełne przeliczenie czasów trasy z dni (jazda, praca, dni w pracy/poza) przed rozliczeniem.
+  // Zwraca true, gdy zmieniła się liczba dni — wtedy trzeba też przeliczyć expectedSalary.
+  async recalcTimesForSettlement(id: number, userId: string): Promise<boolean> {
+    const before = await this.tourRepository.findOne({ where: { id, userId } });
+    await this.recalcDriveTime(id, userId);
+    await this.calcDaysOnDuty(id, userId);
+    const after = await this.tourRepository.findOne({ where: { id, userId } });
+    return before.daysOnDuty !== after.daysOnDuty || before.daysOffDuty !== after.daysOffDuty;
+  }
+
   async addRefuel(id: number, userId: string, value: number): Promise<void> {
     const tour = await this.tourRepository.findOne({ where: { id, userId } });
     const totalRefuel = Number(tour.totalRefuel) + Number(value);

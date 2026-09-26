@@ -124,7 +124,16 @@ export class ToursController {
     if (selectedRoutes.length === 0) {
       throw new BadRequestException('youHaveToChooseRoutes');
     }
-    return await this.toursService.createSettlement(user.id, data, selectedRoutes);
+    // Zapisane w trasach czasy jazdy/pracy mogą być nieaktualne (przyrostowe doliczanie, edycje
+    // czynności) — przed zsumowaniem przeliczamy je z dni i czytamy trasy ponownie.
+    for (const route of selectedRoutes) {
+      const daysChanged = await this.toursService.recalcTimesForSettlement(route.id, user.id);
+      if (daysChanged) {
+        await this.toursService.calcExpectedSalary(route.id, user.id, user.bid, user.bidType);
+      }
+    }
+    const freshRoutes = await this.toursService.getToursByManyIds(data.toursId);
+    return await this.toursService.createSettlement(user.id, data, freshRoutes);
   }
 
   @UseGuards(JwtAuthGuard)
